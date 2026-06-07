@@ -1,7 +1,5 @@
 import streamlit as st
 import pandas as pd
-from fpdf import FPDF
-import io
 
 # إعدادات الصفحة الأساسية لتتناسب مع اللغة العربية
 st.set_page_config(page_title="نظام جماعة معلين الرقمي", page_icon="⚖️", layout="wide")
@@ -60,12 +58,11 @@ with tab2:
     # عرض الأسماء الحالية على شكل جدول مرن يحتوي أزرار الحذف
     if len(st.session_state.members) > 0:
         for idx, member in enumerate(st.session_state.members):
-            col_name, col_del = st.columns([4, 1])
+            col_name, col_del = st.columns([3, 1])
             with col_name:
                 st.info(f"👤 {member}")
             with col_del:
                 st.markdown('<div class="delete-btn">', unsafe_allow_html=True)
-                # استخدام اسم فريد لكل زر حذف اعتماداً على الـ index الخاص بالعضو
                 if st.button(f"🗑️ حذف", key=f"del_{idx}", use_container_width=True):
                     removed_member = st.session_state.members.pop(idx)
                     st.success(f"تم حذف {removed_member} من النظام.")
@@ -108,40 +105,19 @@ with tab1:
         st.markdown("#### 📋 جدول تفصيل التوزيع:")
         st.dataframe(df, use_container_width=True)
         
-        # دالة إنشاء تقرير PDF وتصديره بحل مشكلة اللغة العربية بترميز متوافق بسيط
-        def generate_pdf(dataframe, amount, member_count, share, reason_text):
-            pdf = FPDF()
-            pdf.add_page()
-            pdf.set_font("Arial", size=12)
-            
-            # العناوين والبيانات الأساسية للتقرير
-            pdf.cell(200, 10, txt="Jama'at Mu'alleen - Financial Distribution Report", ln=1, align="C")
-            pdf.cell(200, 10, txt="--------------------------------------------------", ln=2, align="C")
-            pdf.cell(200, 10, txt=f"Reason: {reason_text}", ln=3, align="L")
-            pdf.cell(200, 10, txt=f"Total Amount: {amount:,.2f} SAR", ln=4, align="L")
-            pdf.cell(200, 10, txt=f"Total Group Members: {member_count}", ln=5, align="L")
-            pdf.cell(200, 10, txt=f"Share per Member: {share:,.2f} SAR", ln=6, align="L")
-            pdf.cell(200, 10, txt="--------------------------------------------------", ln=7, align="L")
-            pdf.cell(200, 10, txt="Members List Summary:", ln=8, align="L")
-            
-            # سرد الحصص في الـ PDF بناء على التحديث الحالي للقائمة
-            row = 9
-            for index, name in enumerate(dataframe["اسم الفرد من جماعة معلين"]):
-                pdf.cell(200, 10, txt=f"{index + 1}. Member - Share: {share:,.2f} SAR", ln=row, align="L")
-                row += 1
-                
-            return pdf.output(dest="S").encode("latin-1", errors="ignore")
-
-        # زر تحميل التقرير PDF المحدث
-        st.markdown("### 🖨️ طباعة السجلات والمستندات")
-        pdf_bytes = generate_pdf(df, total_amount, total_members, share_per_member, reason)
+        # ميزة بديلة ذكية ومستقرة للتقارير: تصدير ملف كشف الحساب والجدول متوافق تماماً مع إكسيل وباللغة العربية
+        st.markdown("### 🖨️ طباعة وتصدير السجلات والمستندات")
+        
+        # تحويل الجدول لملف CSV يدعم العربية بشكل كامل عبر ترميز utf-8-sig
+        csv = df.to_csv(index=False).encode('utf-8-sig')
         
         st.markdown('<div class="main-btn">', unsafe_allow_html=True)
         st.download_button(
-            label="📥 تحميل تقرير التقسيم المالي المحدث بصيغة (PDF)",
-            data=pdf_bytes,
-            file_name="تقرير_تقسيم_جماعة_معلين_محدث.pdf",
-            mime="application/pdf"
+            label="📥 تحميل كشف التوزيع المالي المحدث لـ Excel (CSV)",
+            data=csv,
+            file_name=f"تقرير_تقسيم_{reason}_جماعة_معلين.csv",
+            mime='text/csv',
+            use_container_width=True
         )
         st.markdown('</div>', unsafe_allow_html=True)
         
