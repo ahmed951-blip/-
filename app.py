@@ -1,10 +1,11 @@
 import streamlit as st
 import pandas as pd
+import base64
 
 # 1. إعدادات الصفحة الأساسية لتتناسب مع اللغة العربية
 st.set_page_config(page_title="نظام جماعة معلين الرقمي", page_icon="⚖️", layout="wide")
 
-# تطبيق التنسيق من اليمين إلى اليسار (RTL) وتنظيم الخطوط والأزرار والواجهات
+# تطبيق التنسيق من اليمين إلى اليسار (RTL) وتنظيم الخطوط والأزرار والواجهات بشكل مستقر
 st.markdown("""
     <style>
     .reportview-container .main .block-container{ max-width: 95%; }
@@ -16,40 +17,6 @@ st.markdown("""
     .login-box { max-width: 450px; margin: 0 auto; padding: 25px; border: 1px solid #ccc; border-radius: 10px; background-color: #f9f9f9; box-shadow: 2px 2px 12px rgba(0,0,0,0.1); }
     .stTabs [data-baseweb="tab-list"] { direction: rtl; justify-content: flex-start; }
     .stTabs [data-baseweb="tab"] { font-size: 16px; font-weight: bold; }
-    
-    /* هندسة كود الطباعة: إخفاء عناصر التحكم كلياً عند بدء توليد ملف الـ PDF */
-    @media print {
-        header, [data-testid="stSidebar"], .stButton, div[data-testid="stStaticWidget"], 
-        div[data-testid="stSelectbox"], .stTabs, div[data-testid="stAlert"] {
-            display: none !important;
-        }
-        [data-testid="stAppViewContainer"] {
-            background-color: white !important;
-        }
-        .print-only-report {
-            display: block !important;
-            direction: rtl !important;
-            text-align: right !important;
-            font-family: 'Arial', sans-serif !important;
-            padding: 20px !important;
-        }
-        table {
-            width: 100% !important;
-            border-collapse: collapse !important;
-            margin-top: 20px !important;
-        }
-        th, td {
-            border: 1px solid #000000 !important;
-            padding: 12px !important;
-            text-align: right !important;
-            color: #000000 !important;
-            font-size: 14px !important;
-        }
-        th {
-            background-color: #f2f2f2 !important;
-            font-weight: bold !important;
-        }
-    }
     </style>
     """, unsafe_allow_html=True)
 
@@ -71,7 +38,7 @@ if 'members_db' not in st.session_state:
         {"الاسم": "فاطمة المعلي", "كود العائلة": "B2", "تم دفع الصندوق": "نعم", "الجنس": "أنثى"}
     ]
 
-# مزامنة البيانات الحالية في DataFrame
+# مزامنة البيانات الحالية
 df_current = pd.DataFrame(st.session_state.members_db)
 
 # ==========================================
@@ -214,3 +181,21 @@ else:
             st.warning("لا يوجد أعضاء مسجلين حالياً.")
 
     # ------------------------------------------
+    # التبويب الثالث: التقارير والفرز المتقدم (توليد الـ PDF المنفصل والمستقر)
+    # ------------------------------------------
+    with tab3:
+        st.subheader("📊 لوحة التقارير والفرز المتقدم وتصدير المستندات")
+        if len(st.session_state.members_db) > 0:
+            col_f1, col_f2, col_f3, col_f4 = st.columns(4)
+            with col_f1:
+                sort_option = st.selectbox("🎯 خيار فرز وترتيب القائمة:", ["أبجدي (حسب الاسم)", "حسب كود العائلة", "حسب الجنس", "بدون ترتيب"])
+            with col_f2:
+                filter_family = st.selectbox("🏠 تصفية لعائلة محددة:", ["الكل"] + list(df_current["كود العائلة"].unique()))
+            with col_f3:
+                filter_gender = st.selectbox("🧬 تصفية للجنس:", ["الكل", "ذكر", "أنثى"])
+            with col_f4:
+                filter_paid = st.selectbox("💰 دفع الصندوق:", ["الكل", "نعم", "لا"])
+                
+            df_filtered = df_current.copy()
+            if filter_family != "الكل": df_filtered = df_filtered[df_filtered["كود العائلة"] == filter_family]
+            if filter_gender != "الكل": df_filtered = df_filtered[df_filtered["الجنس"] == filter_gender]
