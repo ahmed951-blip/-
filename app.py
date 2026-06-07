@@ -4,7 +4,7 @@ import pandas as pd
 # 1. إعدادات الصفحة الأساسية لتتناسب مع اللغة العربية
 st.set_page_config(page_title="نظام جماعة معلين الرقمي", page_icon="⚖️", layout="wide")
 
-# تطبيق التنسيق وتحسين مظهر البطاقات الإحصائية والأزرار لضمان التناسق
+# تطبيق التنسيق من اليمين إلى اليسار (RTL) وتحسين مظهر البطاقات الإحصائية والأزرار
 st.markdown("""
     <style>
     .reportview-container .main .block-container{ max-width: 95%; }
@@ -29,7 +29,7 @@ st.markdown("""
     </style>
     """, unsafe_allow_html=True)
 
-# 2. تهيئة قاعدة البيانات الآمنة (Session State) لضمان عدم حدوث تعارض أثناء الحذف
+# 2. تهيئة قاعدة البيانات الأساسية في الذاكرة (Session State)
 if 'users_db' not in st.session_state:
     st.session_state.users_db = {"admin": {"password": "123", "role": "مسؤول رئيسي"}}
 
@@ -45,7 +45,8 @@ if 'members_db' not in st.session_state:
         {"الاسم": "فاطمة المعلي", "كود العائلة": "B2", "تم دفع الصندوق": "نعم", "الجنس": "أنثى"}
     ]
 
-if 'editing_idx' not in st.session_state: st.session_state.editing_idx = None
+if 'editing_idx' not in st.session_state:
+    st.session_state.editing_idx = None
 
 # ==========================================
 # 🔐 شـاشـة تـسـجـيـل الـدخـول
@@ -70,8 +71,10 @@ if not st.session_state.logged_in:
                 st.session_state.user_role = st.session_state.users_db[username_input]["role"]
                 st.success("تم الدخول بنجاح..")
                 st.rerun()
-            else: st.error("كلمة السر غير صحيحة.")
-        else: st.error("اسم المستخدم غير مسجل.")
+            else:
+                st.error("كلمة السر غير صحيحة.")
+        else:
+            st.error("اسم المستخدم غير مسجل.")
     st.markdown('</div>', unsafe_allow_html=True)
 
 # ==========================================
@@ -79,7 +82,8 @@ if not st.session_state.logged_in:
 # ==========================================
 else:
     col_header, col_logout = st.columns(2)
-    with col_header: st.subheader(f"👋 مرحباً بك: {st.session_state.current_user} ({st.session_state.user_role})")
+    with col_header:
+        st.subheader(f"👋 مرحباً بك: {st.session_state.current_user} ({st.session_state.user_role})")
     with col_logout:
         if st.button("🚪 تسجيل الخروج", key="logout_btn_top"):
             st.session_state.logged_in = False
@@ -91,7 +95,7 @@ else:
     st.title("⚖️ النظام الإلكتروني لإدارة وتقسيم المستحقات - جماعة معلين")
     st.markdown("---")
 
-    # 📊 حساب وعرض الإحصائيات العامة والمالية
+    # 📊 لوحة الإحصائيات العامة والمالية للموقع
     total_registered_members = len(st.session_state.members_db)
     total_males = sum(1 for m in st.session_state.members_db if m["الجنس"] == "ذكر")
     total_females = sum(1 for m in st.session_state.members_db if m["الجنس"] == "أنثى")
@@ -134,32 +138,33 @@ else:
         else: st.error("قائمة الأسماء فارغة.")
 
     # ------------------------------------------
-    # التبويب الثاني: إدارة وإضافة الأعضاء (إصلاح شامل وثابت)
+    # التبويب الثاني: إدارة وإضافة الأعضاء (إصلاح جذري)
     # ------------------------------------------
     with tab2:
         if st.session_state.editing_idx is not None:
             st.subheader("📝 تعديل بيانات العضو الحالي")
             edit_data = st.session_state.members_db[st.session_state.editing_idx]
             
-            with st.form("edit_member_form"):
-                e_name = st.text_input("الاسم الثلاثي المحدث:", value=edit_data["الاسم"])
-                e_code = st.text_input("كود العائلة المحدث:", value=edit_data["كود العائلة"])
-                e_paid = st.selectbox("حالة الصندوق:", ["نعم", "لا"], index=["نعم", "لا"].index(edit_data["تم دفع الصندوق"]))
-                e_gender = st.selectbox("الجنس:", ["ذكر", "أنثى"], index=["ذكر", "أنثى"].index(edit_data["الجنس"]))
-                
-                col_ef1, col_ef2 = st.columns(2)
-                with col_ef1: save_edit = st.form_submit_button("💾 حفظ التعديلات")
-                with col_ef2: cancel_edit = st.form_submit_button("❌ إلغاء")
-                    
-                if save_edit:
+            e_name = st.text_input("الاسم الثلاثي المحدث:", value=edit_data["الاسم"], key="input_edit_name")
+            e_code = st.text_input("كود العائلة المحدث:", value=edit_data["كود العائلة"], key="input_edit_code")
+            e_paid = st.selectbox("حالة الصندوق:", ["نعم", "لا"], index=["نعم", "لا"].index(edit_data["تم دفع الصندوق"]), key="select_edit_paid")
+            e_gender = st.selectbox("الجنس:", ["ذكر", "أنثى"], index=["ذكر", "أنثى"].index(edit_data["الجنس"]), key="select_edit_gender")
+            
+            col_ef1, col_ef2 = st.columns(2)
+            with col_ef1:
+                if st.button("💾 حفظ التعديلات المحدثة", key="btn_save_member_changes"):
                     if e_name.strip() != "" and e_code.strip() != "":
-                        st.session_state.members_db[st.session_state.editing_idx] = {"الاسم": e_name.strip(), "كود العائلة": e_code.strip().upper(), "تم دفع الصندوق": e_paid, "الجنس": e_gender}
+                        st.session_state.members_db[st.session_state.editing_idx] = {
+                            "الاسم": e_name.strip(),
+                            "كود العائلة": e_code.strip().upper(),
+                            "تم دفع الصندوق": e_paid,
+                            "الجنس": e_gender
+                        }
                         st.session_state.editing_idx = None
                         st.success("تم تحديث البيانات.")
                         st.rerun()
-                if cancel_edit:
+            with col_ef2:
+                if st.button("❌ إلغاء التعديل", key="btn_cancel_member_edit"):
                     st.session_state.editing_idx = None
                     st.rerun()
         else:
-            st.subheader("➕ إضافة عضو جديد")
-            # استخدام حقول مستقلة تماماً بدون استمارة لتجنب مشاكل التجميد البرمجي في الإضافة
