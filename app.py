@@ -4,21 +4,31 @@ import pandas as pd
 # 1. إعدادات الصفحة الأساسية لتتناسب مع اللغة العربية
 st.set_page_config(page_title="نظام جماعة معلين الرقمي", page_icon="⚖️", layout="wide")
 
-# تطبيق التنسيق من اليمين إلى اليسار (RTL) وتنظيم الخطوط والأزرار والواجهات بشكل مستقر
+# تطبيق التنسيق من اليمين إلى اليسار (RTL) وتحسين مظهر البطاقات الإحصائية والأزرار
 st.markdown("""
     <style>
     .reportview-container .main .block-container{ max-width: 95%; }
     div[data-testid="stMarkdownContainer"] { text-align: right; direction: rtl; }
     div[data-testid="stNumberInput"] label, div[data-testid="stTextInput"] label, div[data-testid="stSelectbox"] label { text-align: right; direction: rtl; width: 100%; }
-    .stButton>button { width: 100%; font-weight: bold; }
-    .main-btn>div>button { background-color: #2e7d32; color: white; border-radius: 8px; padding: 10px; }
-    .excel-btn>div>button { background-color: #1f7244; color: white; border-radius: 8px; font-weight: bold; }
-    .word-btn>div>button { background-color: #2b579a; color: white; border-radius: 8px; font-weight: bold; }
-    .pdf-btn>div>button { background-color: #b71c1c; color: white; border-radius: 8px; font-weight: bold; }
-    .delete-btn>div>button { background-color: #d32f2f; color: white; border: none; border-radius: 5px; height: 38px; }
+    .stButton>button { width: 100%; font-weight: bold; border-radius: 8px; }
+    
+    /* تنسيق ألوان الأزرار المختلفة */
+    .main-btn>div>button { background-color: #2e7d32; color: white; padding: 10px; }
+    .excel-btn>div>button { background-color: #1f7244; color: white; font-weight: bold; }
+    .word-btn>div>button { background-color: #2b579a; color: white; font-weight: bold; }
+    .pdf-btn>div>button { background-color: #b71c1c; color: white; font-weight: bold; }
+    .delete-btn>div>button { background-color: #d32f2f; color: white; border: none; height: 38px; }
+    .edit-btn>div>button { background-color: #f57c00; color: white; border: none; height: 38px; }
+    
+    /* بطاقة الدخول والتبويبات */
     .login-box { max-width: 450px; margin: 0 auto; padding: 25px; border: 1px solid #ccc; border-radius: 10px; background-color: #f9f9f9; box-shadow: 2px 2px 12px rgba(0,0,0,0.1); }
     .stTabs [data-baseweb="tab-list"] { direction: rtl; justify-content: flex-start; }
     .stTabs [data-baseweb="tab"] { font-size: 16px; font-weight: bold; }
+    
+    /* تصميم البطاقات الإحصائية المرتبة */
+    .stat-card { background-color: #f8f9fa; border-right: 5px solid #2e7d32; padding: 15px; border-radius: 5px; box-shadow: 1px 1px 5px rgba(0,0,0,0.05); margin-bottom: 10px; text-align: right; }
+    .stat-title { font-size: 14px; color: #6c757d; font-weight: bold; }
+    .stat-value { font-size: 22px; color: #2e7d32; font-weight: bold; margin-top: 5px; }
     </style>
     """, unsafe_allow_html=True)
 
@@ -40,8 +50,12 @@ if 'members_db' not in st.session_state:
         {"الاسم": "فاطمة المعلي", "كود العائلة": "B2", "تم دفع الصندوق": "نعم", "الجنس": "أنثى"}
     ]
 
+# متغير للتحكم في وضع التعديل للأعضاء
+if 'editing_idx' not in st.session_state:
+    st.session_state.editing_idx = None
+
 # ==========================================
-# 🔐 شـاشـة تـسـجـيـل الـدخـول (تظهر أولاً بدون أي إحصائيات)
+# 🔐 شـاشـة تـسـجـيـل الـدخـول (بدون بيانات علنية)
 # ==========================================
 if not st.session_state.logged_in:
     st.markdown("<br><br><br>", unsafe_allow_html=True)
@@ -73,7 +87,7 @@ if not st.session_state.logged_in:
 # 💻 واجـهـة الـمـوقـع الـرئـيـسـيـة بـعـد الـدخـول
 # ==========================================
 else:
-    # شريط علوي لعرض اسم المستخدم الحالي وزر تسجيل الخروج
+    # شريط علوي لعرض الحساب الحالي وزر تسجيل الخروج
     col_header, col_logout = st.columns(2)
     with col_header:
         st.subheader(f"👋 مرحباً بك: {st.session_state.current_user} ({st.session_state.user_role})")
@@ -82,48 +96,45 @@ else:
             st.session_state.logged_in = False
             st.session_state.current_user = ""
             st.session_state.user_role = ""
+            st.session_state.editing_idx = None
             st.rerun()
             
     st.title("⚖️ النظام الإلكتروني لإدارة وتقسيم المستحقات - جماعة معلين")
     st.markdown("---")
 
-    # 📊 تم نقل حساب وعرض الإحصائيات إلى هنا (داخل شرط تسجيل الدخول فقط)
+    # 📊 حساب الإحصائيات العامة ديناميكياً وعرضها ببطاقات منسقة ومرتبة واضحة
     total_registered_members = len(st.session_state.members_db)
     total_males = sum(1 for m in st.session_state.members_db if m["الجنس"] == "ذكر")
     total_females = sum(1 for m in st.session_state.members_db if m["الجنس"] == "أنثى")
     total_paid = sum(1 for m in st.session_state.members_db if m["تم دفع الصندوق"] == "نعم")
     total_not_paid = sum(1 for m in st.session_state.members_db if m["تم دفع الصندوق"] == "لا")
-
-    # حساب مبلغ الصندوق الحالي (500 ريال لكل من دفع "نعم")
-    fund_subscription_value = 500
+    
+    fund_subscription_value = 500  # قيمة افتراضية للاشتراك
     total_fund_amount = total_paid * fund_subscription_value
 
-    st.markdown("### 📊 إحصائيات صندوق جماعة معلين العامة")
+    st.markdown("### 📊 لوحة الإحصائيات العامة والمالية للموقع")
     
-    # الصف الأول من العدادات
-    col_top1, col_top2, col_top3 = st.columns(3)
-    with col_top1:
-        st.metric(label="👥 إجمالي الأعضاء المسجلين", value=f"{total_registered_members} فرد")
-    with col_top2:
-        st.metric(label="👨 عدد الذكور المسجلين", value=f"{total_males} فرد")
-    with col_top3:
-        st.metric(label="👩 عدد الإناث المسجلين", value=f"{total_females} فرد")
-
-    # الصف الثاني من العدادات
-    col_top4, col_top5, col_top6 = st.columns(3)
-    with col_top4:
-        st.metric(label="✅ الملتزمين بالدفع في الصندوق", value=f"{total_paid} فرد")
-    with col_top5:
-        st.metric(label="❌ غير المسجلين بالدفع (المتأخرين)", value=f"{total_not_paid} فرد")
-    with col_top6:
-        st.metric(label="💰 إجمالي أموال الصندوق الحالية", value=f"{total_fund_amount:,.2f} ريال")
+    # توزيع الإحصائيات الـ 6 في صف واحد منظم ومقسّم بالتساوي لضمان وضوح العناصر
+    c1, c2, c3, c4, c5, c6 = st.columns(6)
+    with c1:
+        st.markdown(f'<div class="stat-card"><div class="stat-title">👥 إجمالي الأعضاء</div><div class="stat-value">{total_registered_members}</div></div>', unsafe_allow_html=True)
+    with c2:
+        st.markdown(f'<div class="stat-card"><div class="stat-title">👨 عدد الذكور</div><div class="stat-value">{total_males}</div></div>', unsafe_allow_html=True)
+    with c3:
+        st.markdown(f'<div class="stat-card"><div class="stat-title">👩 عدد الإناث</div><div class="stat-value">{total_females}</div></div>', unsafe_allow_html=True)
+    with c4:
+        st.markdown(f'<div class="stat-card"><div class="stat-title">✅ المسجلين بالصندوق</div><div class="stat-value">{total_paid}</div></div>', unsafe_allow_html=True)
+    with c5:
+        st.markdown(f'<div class="stat-card"><div class="stat-title">❌ غير المسجلين بالصندوق</div><div class="stat-value">{total_not_paid}</div></div>', unsafe_allow_html=True)
+    with c6:
+        st.markdown(f'<div class="stat-card"><div class="stat-title">💰 ميزانية الصندوق</div><div class="stat-value">{total_fund_amount:,.0f} ر.س</div></div>', unsafe_allow_html=True)
 
     st.markdown("---")
 
     # تحويل قاعدة البيانات الحالية إلى DataFrame لسهولة العرض والفرز
     df_current = pd.DataFrame(st.session_state.members_db)
 
-    # إنشاء التبويبات الأربعة الثابتة والمستقرة
+    # إنشاء التبويبات الأربعة المستقرة
     tab1, tab2, tab3, tab4 = st.tabs([
         "💰 1. حساب وتقسيم المبالغ", 
         "👥 2. إدارة وإضافة الأعضاء", 
@@ -136,64 +147,41 @@ else:
     # ------------------------------------------
     with tab1:
         st.subheader("💵 إدخال المبالغ وتقسيمها بالتساوي")
-        total_members = len(st.session_state.members_db)
-        st.info(f"📊 إجمالي عدد أعضاء الجماعة المستحقين للتقسيم: **{total_members} فرد**")
-        
-        col_m1, col_m2 = st.columns(2)
-        with col_m1:
-            total_amount = st.number_input("أدخل المبلغ المالي الإجمالي المراد تقسيمه (ريال):", min_value=0.0, value=0.0, step=100.0, key="calc_amount_input")
-        with col_m2:
-            reason = st.text_input("سبب أو مناسبة التقسيم:", value="دية عامة", key="calc_reason_input")
+        if total_registered_members > 0:
+            col_m1, col_m2 = st.columns(2)
+            with col_m1:
+                total_amount = st.number_input("أدخل المبلغ المالي الإجمالي المراد تقسيمه (ريال):", min_value=0.0, value=0.0, step=100.0, key="calc_amount_input")
+            with col_m2:
+                reason = st.text_input("سبب أو مناسبة التقسيم:", value="دية عامة", key="calc_reason_input")
 
-        if total_amount > 0 and total_members > 0:
-            share_per_member = total_amount / total_members
-            st.markdown("### 📊 نتيجة التوزيع المالي الإجمالي:")
-            col_s1, col_s2 = st.columns(2)
-            with col_s1:
-                st.metric(label="💰 نصيب الفرد الواحد الحالي", value=f"{share_per_member:,.2f} ريال")
-            with col_s2:
-                st.metric(label="👥 عدد الأفراد المستحقين الفعلي", value=f"{total_members} فرد")
-                
-            df_calc = df_current.copy()
-            df_calc["المبلغ المستحق (ريال)"] = round(share_per_member, 2)
-            st.markdown("#### 📋 جدول تفصيل توزيع المستحقات:")
-            st.dataframe(df_calc, use_container_width=True, hide_index=True)
-        elif total_amount == 0:
-            st.warning("يرجى كتابة مبلغ أكبر من الصفر لبدء حساب وتقسيم الحصص المالية.")
+            if total_amount > 0:
+                share_per_member = total_amount / total_registered_members
+                st.markdown("### 📊 نتيجة التوزيع المالي الإجمالي:")
+                col_s1, col_s2 = st.columns(2)
+                with col_s1:
+                    st.metric(label="💰 نصيب الفرد الواحد الحالي", value=f"{share_per_member:,.2f} ريال")
+                with col_s2:
+                    st.metric(label="👥 عدد الأفراد المستحقين الفعلي", value=f"{total_registered_members} فرد")
+                    
+                df_calc = df_current.copy()
+                df_calc["المبلغ المستحق (ريال)"] = round(share_per_member, 2)
+                st.markdown("#### 📋 جدول تفصيل توزيع المستحقات:")
+                st.dataframe(df_calc, use_container_width=True, hide_index=True)
+            elif total_amount == 0:
+                st.warning("يرجى كتابة مبلغ أكبر من الصفر لبدء حساب وتقسيم الحصص المالية.")
+        else:
+            st.error("قائمة الأسماء فارغة، يرجى إضافة أفراد أولاً.")
 
     # ------------------------------------------
-    # التبويب الثاني: إدارة وإضافة الأعضاء
+    # التبويب الثاني: إدارة وإضافة الأعضاء (حل مشكلة الإضافة وتفعيل التعديل)
     # ------------------------------------------
     with tab2:
-        st.subheader("➕ إضافة عضو جديد لجماعة معلين")
-        col_in1, col_in2, col_in3, col_in4 = st.columns(4)
-        with col_in1:
-            mem_name = st.text_input("اسم العضو الثلاثي:", placeholder="مثال: علي محمد المعلي", key="add_mem_name")
-        with col_in2:
-            mem_code = st.text_input("كود العائلة:", placeholder="مثال: A1", key="add_mem_code")
-        with col_in3:
-            mem_paid = st.selectbox("تم دفع مبلغ الصندوق؟", ["نعم", "لا"], key="add_mem_paid")
-        with col_in4:
-            mem_gender = st.selectbox("الجنس:", ["ذكر", "أنثى"], key="add_mem_gender")
+        # جزء التعديل أو الإضافة (نموذج إدخال آمن ومثبت لمنع ضياع البيانات)
+        if st.session_state.editing_idx is not None:
+            st.subheader("📝 تعديل بيانات العضو الحالي")
+            edit_data = st.session_state.members_db[st.session_state.editing_idx]
             
-        st.markdown('<div class="main-btn">', unsafe_allow_html=True)
-        add_btn = st.button("➕ تسجيل العضو في النظام", key="submit_new_member_btn")
-        st.markdown('</div>', unsafe_allow_html=True)
-        
-        if add_btn:
-            if mem_name.strip() != "" and mem_code.strip() != "":
-                if not any(d['الاسم'] == mem_name.strip() for d in st.session_state.members_db):
-                    new_entry = {"الاسم": mem_name.strip(), "كود العائلة": mem_code.strip().upper(), "تم دفع الصندوق": mem_paid, "الجنس": mem_gender}
-                    st.session_state.members_db.append(new_entry)
-                    st.success(f"تم تسجيل العضو 【 {mem_name} 】 بنجاح.")
-                    st.rerun()
-                else:
-                    st.warning("هذا الاسم مسجل مسبقاً في النظام.")
-            else:
-                st.error("يرجى ملء حقول الاسم وكود العائلة أولاً.")
-
-        st.markdown("---")
-        st.subheader("📋 قائمة التحكم بالأعضاء وحذفهم المباشر")
-        if len(st.session_state.members_db) > 0:
-            for idx, member in enumerate(st.session_state.members_db):
-                col_show, col_del_btn = st.columns(2)
+            with st.form("edit_member_form"):
+                e_name = st.text_input("الاسم الثلاثي المحدث:", value=edit_data["الاسم"])
+                e_code = st.text_input("كود العائلة المحدث:", value=edit_data["كود العائلة"])
+                e_paid = st.selectbox("حالة الصندوق:", ["نعم", "لا"], index=["نعم", "لا"].index(edit_data["تم دفع الصندوق"]))
