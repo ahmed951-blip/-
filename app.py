@@ -16,6 +16,31 @@ st.markdown("""
     .login-box { max-width: 450px; margin: 0 auto; padding: 25px; border: 1px solid #ccc; border-radius: 10px; background-color: #f9f9f9; box-shadow: 2px 2px 12px rgba(0,0,0,0.1); }
     .stTabs [data-baseweb="tab-list"] { direction: rtl; justify-content: flex-start; }
     .stTabs [data-baseweb="tab"] { font-size: 16px; font-weight: bold; }
+    
+    /* تصميم خاص بطباعة التقرير المستهدف وعزل الأزرار غير المرغوبة عند الطباعة */
+    @media print {
+        header, [data-testid="stSidebar"], .stButton, div[data-testid="stStaticWidget"], div[data-testid="stSelectbox"] {
+            display: none !important;
+        }
+        .printable-report {
+            direction: rtl !important;
+            text-align: right !important;
+            font-family: 'Arial', sans-serif !important;
+        }
+        table {
+            width: 100% !important;
+            border-collapse: collapse !important;
+        }
+        th, td {
+            border: 1px solid #ccc !important;
+            padding: 10px !important;
+            text-align: right !important;
+        }
+        th {
+            background-color: #2e7d32 !important;
+            color: white !important;
+        }
+    }
     </style>
     """, unsafe_allow_html=True)
 
@@ -91,14 +116,14 @@ else:
         tab1, tab2, tab3, tab4 = st.tabs([
             "💰 1. حساب وتقسيم المبالغ", 
             "👥 2. إدارة وإضافة الأعضاء", 
-            "📊 3. التقارير والفرز المتقدم",
+            "📊 3. التقارير والفرز المتقدم (PDF)",
             "🔒 4. إدارة حسابات الدخول (خاص بالآدمن)"
         ])
     else:
         tab1, tab2, tab3 = st.tabs([
             "💰 1. حساب وتقسيم المبالغ", 
             "👥 2. إدارة وإضافة الأعضاء", 
-            "📊 3. التقارير والفرز المتقدم"
+            "📊 3. التقارير والفرز المتقدم (PDF)"
         ])
 
     # ------------------------------------------
@@ -180,21 +205,10 @@ else:
             st.warning("لا يوجد أعضاء مسجلين حالياً.")
 
     # ------------------------------------------
-    # التبويب الثالث: التقارير والفرز المتقدم (إصلاح التحميل المستقر للطباعة)
+    # التبويب الثالث: التقارير والفرز المتقدم (توليد الطباعة المستقرة لـ PDF)
     # ------------------------------------------
     with tab3:
         st.subheader("📊 لوحة التقارير والفرز المتقدم وتصدير المستندات")
         if len(st.session_state.members_db) > 0:
             col_f1, col_f2, col_f3, col_f4 = st.columns(4)
             with col_f1:
-                sort_option = st.selectbox("🎯 خيار فرز وترتيب القائمة:", ["أبجدي (حسب الاسم)", "حسب كود العائلة", "حسب الجنس", "بدون ترتيب"])
-            with col_f2:
-                filter_family = st.selectbox("🏠 تصفية لعائلة محددة:", ["الكل"] + list(df_current["كود العائلة"].unique()))
-            with col_f3:
-                filter_gender = st.selectbox("🧬 تصفية للجنس:", ["الكل", "ذكر", "أنثى"])
-            with col_f4:
-                filter_paid = st.selectbox("💰 دفع الصندوق:", ["الكل", "نعم", "لا"])
-                
-            df_filtered = df_current.copy()
-            if filter_family != "الكل": df_filtered = df_filtered[df_filtered["كود العائلة"] == filter_family]
-            if filter_gender != "الكل": df_filtered = df_filtered[df_filtered["الجنس"] == filter_gender]
