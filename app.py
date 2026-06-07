@@ -1,37 +1,21 @@
 import streamlit as st
 import pandas as pd
 
-# 1. إعدادات الصفحة الأساسية لتتناسب مع اللغة العربية
+# إعدادات الواجهة الأساسية واللغة العربية
 st.set_page_config(page_title="نظام جماعة معلين الرقمي", page_icon="⚖️", layout="wide")
 
-# تطبيق التنسيق من اليمين إلى اليسار (RTL) وتحسين مظهر الواجهات والأزرار الإحصائية والمالية
 st.markdown("""
     <style>
-    .reportview-container .main .block-container{ max-width: 95%; }
     div[data-testid="stMarkdownContainer"] { text-align: right; direction: rtl; }
     div[data-testid="stNumberInput"] label, div[data-testid="stTextInput"] label, div[data-testid="stSelectbox"] label { text-align: right; direction: rtl; width: 100%; }
     .stButton>button { width: 100%; font-weight: bold; border-radius: 8px; }
-    
-    .main-btn>div>button { background-color: #2e7d32; color: white; padding: 10px; }
-    .excel-btn>div>button { background-color: #1f7244; color: white; font-weight: bold; }
-    .word-btn>div>button { background-color: #2b579a; color: white; font-weight: bold; }
-    .pdf-btn>div>button { background-color: #b71c1c; color: white; border-radius: 8px; font-weight: bold; }
-    .delete-btn>div>button { background-color: #d32f2f; color: white; border: none; height: 38px; }
-    
-    .login-box { max-width: 450px; margin: 0 auto; padding: 25px; border: 1px solid #ccc; border-radius: 10px; background-color: #f9f9f9; box-shadow: 2px 2px 12px rgba(0,0,0,0.1); }
-    .stTabs [data-baseweb="tab-list"] { direction: rtl; justify-content: flex-start; }
-    .stTabs [data-baseweb="tab"] { font-size: 16px; font-weight: bold; }
-    
     .stat-box { background-color: #f8f9fa; border-right: 5px solid #2e7d32; padding: 15px; border-radius: 5px; text-align: right; margin-bottom: 15px; }
     </style>
     """, unsafe_allow_html=True)
 
-# 2. تهيئة قاعدة البيانات الأساسية في الذاكرة (Session State) لضمان حفظ العمليات
+# إدارة الجلسة وقاعدة البيانات في المتصفح لمنع التجميد
 if 'users_db' not in st.session_state:
     st.session_state.users_db = {"admin": "123"}
-
-if 'logged_in' not in st.session_state:
-    st.session_state.logged_in = False
 
 if 'members_db' not in st.session_state:
     st.session_state.members_db = [
@@ -40,105 +24,140 @@ if 'members_db' not in st.session_state:
         {"الاسم": "فاطمة المعلي", "كود العائلة": "B2", "تم دفع الصندوق": "نعم", "الجنس": "أنثى"}
     ]
 
-# حساب الإحصائيات العامة والمالية للموقع بشكل فوري
-total_members = len(st.session_state.members_db)
-males = sum(1 for m in st.session_state.members_db if m["الجنس"] == "ذكر")
-females = total_members - males
-paid = sum(1 for m in st.session_state.members_db if m["تم دفع الصندوق"] == "نعم")
-not_paid = total_members - paid
-box_money = paid * 500
+if 'logged_in' not in st.session_state:
+    st.session_state.logged_in = False
 
-# ==========================================
-# 🔐 شـاشـة تـسـجـيـل الـدخـول
-# ==========================================
+# شاشة تسجيل الدخول
 if not st.session_state.logged_in:
-    st.markdown("<br><br><br>", unsafe_allow_html=True)
-    st.markdown('<div class="login-box">', unsafe_allow_html=True)
     st.subheader("🔐 تسجيل الدخول - نظام جماعة معلين")
-    
-    u_input = st.text_input("اسم المستخدم:", key="login_u").strip()
-    p_input = st.text_input("كلمة السر:", type="password", key="login_p").strip()
-    
-    st.markdown('<div class="main-btn">', unsafe_allow_html=True)
-    if st.button("دخول للنظام", key="login_action_btn"):
-        if u_input in st.session_state.users_db and st.session_state.users_db[u_input] == p_input:
+    u = st.text_input("اسم المستخدم:", key="login_username_key").strip()
+    p = st.text_input("كلمة السر:", type="password", key="login_password_key").strip()
+    if st.button("دخول للنظام", key="login_submit_btn_key"):
+        if u in st.session_state.users_db and st.session_state.users_db[u] == p:
             st.session_state.logged_in = True
             st.success("تم الدخول بنجاح.")
             st.rerun()
-        else: st.error("اسم المستخدم أو كلمة السر غير صحيحة.")
-    st.markdown('</div>', unsafe_allow_html=True)
-    st.markdown('</div>', unsafe_allow_html=True)
-
-# ==========================================
-# 💻 واجـهـة الـمـوقـع بـعـد الـدخـول الصحيح
-# ==========================================
+        else:
+            st.error("اسم المستخدم أو كلمة السر غير صحيحة.")
 else:
-    if st.button("🚪 تسجيل الخروج", key="logout_action_btn"):
+    # شريط الخروج العلوي
+    if st.button("🚪 تسجيل الخروج من النظام", key="logout_top_btn_key"):
         st.session_state.logged_in = False
         st.rerun()
-            
-    st.title("⚖️ النظام الإلكتروني لإدارة وتقسيم المستحقات - جماعة معلين")
+
+    st.title("⚖️ النظام الإلكتروني - جماعة معلين")
     st.markdown("---")
 
-    # 📊 عرض لوحة الإحصائيات العامة المحدثة
-    st.markdown("### 📊 لوحة الإحصائيات العامة والمالية للموقع")
+    # حساب الإحصائيات العامة والمالية بدقة
+    df = pd.DataFrame(st.session_state.members_db)
+    total = len(df)
+    males = sum(1 for m in st.session_state.members_db if m["الجنس"] == "ذكر")
+    females = total - males
+    paid = sum(1 for m in st.session_state.members_db if m["تم دفع الصندوق"] == "نعم")
+    not_paid = total - paid
+    box_money = paid * 500
+
+    # عرض لوحة الإحصائيات بوضوح
+    st.markdown("### 📊 إحصائيات الصندوق العامة")
     c1, c2, c3, c4, c5, c6 = st.columns(6)
-    c1.markdown(f'<div class="stat-box"><b>👥 إجمالي الأعضاء</b><br><span style="font-size:22px; color:#2e7d32; font-weight:bold;">{total_members}</span></div>', unsafe_allow_html=True)
-    c2.markdown(f'<div class="stat-box"><b>👨 عدد الذكور</b><br><span style="font-size:22px; color:#2e7d32; font-weight:bold;">{males}</span></div>', unsafe_allow_html=True)
-    c3.markdown(f'<div class="stat-box"><b>👩 عدد الإناث</b><br><span style="font-size:22px; color:#2e7d32; font-weight:bold;">{females}</span></div>', unsafe_allow_html=True)
-    c4.markdown(f'<div class="stat-box"><b>✅ مسجل بالصندوق</b><br><span style="font-size:22px; color:#2e7d32; font-weight:bold;">{paid}</span></div>', unsafe_allow_html=True)
-    c5.markdown(f'<div class="stat-box"><b>❌ غير مسجل</b><br><span style="font-size:22px; color:#2e7d32; font-weight:bold;">{not_paid}</span></div>', unsafe_allow_html=True)
-    c6.markdown(f'<div class="stat-box"><b>💰 مبلغ الصندوق</b><br><span style="font-size:22px; color:#2e7d32; font-weight:bold;">{box_money:,.0f} ر.س</span></div>', unsafe_allow_html=True)
+    c1.markdown(f'<div class="stat-box"><b>👥 إجمالي الأعضاء</b><br><span style="font-size:20px; color:#2e7d32;">{total}</span></div>', unsafe_allow_html=True)
+    c2.markdown(f'<div class="stat-box"><b>👨 عدد الذكور</b><br><span style="font-size:20px; color:#2e7d32;">{males}</span></div>', unsafe_allow_html=True)
+    c3.markdown(f'<div class="stat-box"><b>👩 عدد الإناث</b><br><span style="font-size:20px; color:#2e7d32;">{females}</span></div>', unsafe_allow_html=True)
+    c4.markdown(f'<div class="stat-box"><b>✅ مسجل بالصندوق</b><br><span style="font-size:20px; color:#2e7d32;">{paid}</span></div>', unsafe_allow_html=True)
+    c5.markdown(f'<div class="stat-box"><b>❌ غير مسجل</b><br><span style="font-size:20px; color:#2e7d32;">{not_paid}</span></div>', unsafe_allow_html=True)
+    c6.markdown(f'<div class="stat-box"><b>💰 ميزانية الصندوق</b><br><span style="font-size:20px; color:#2e7d32;">{box_money:,} ر.س</span></div>', unsafe_allow_html=True)
 
     st.markdown("---")
-    df_current = pd.DataFrame(st.session_state.members_db)
-    tab1, tab2, tab3, tab4 = st.tabs(["💰 1. حساب وتقسيم المبالغ الجديد", "👥 2. إدارة وإضافة الأعضاء", "📊 3. استخراج التقارير المتقدمة", "🔒 4. صلاحيات وحسابات المستخدمين"])
 
-    # ------------------------------------------
-    # التبويب الأول: تقسيم المبالغ والتقرير المالي الخاص به بصيغة PDF
-    # ------------------------------------------
+    # إنشاء التبويبات الـ 4
+    tab1, tab2, tab3, tab4 = st.tabs(["💰 1. التقسيم المالي", "👥 2. إدارة الأعضاء", "📊 3. التقارير والفرز", "🔒 4. حسابات المستخدمين"])
+
+    # 1. التقسيم المالي وتوليد التقرير المخصص
     with tab1:
-        st.subheader("💵 إضافة وتقسيم مبلغ مالي جديد على الجماعة بالتساوي")
-        if total_members > 0:
-            col_m1, col_m2 = st.columns(2)
-            with col_m1: 
-                total_amount = st.number_input("أدخل المبلغ المالي الإجمالي المراد تقسيمه (ريال):", min_value=0.0, value=0.0, step=100.0, key="calc_amount_input_unique")
-            with col_m2: 
-                reason = st.text_input("سبب أو مناسبة هذا التقسيم المالي:", value="دية عاجلة", key="calc_reason_input_unique")
+        st.subheader("💵 تقسيم المبالغ بالتساوي وتوليد المستند")
+        amt = st.number_input("المبلغ الإجمالي المراد تقسيمه (ريال):", min_value=0.0, value=0.0, key="finance_amount_input_key")
+        reason = st.text_input("سبب أو مناسبة التقسيم المالي:", value="دية عاجلة", key="finance_reason_input_key")
+        
+        if amt > 0 and total > 0:
+            share = amt / total
+            st.metric("💰 نصيب الفرد الواحد الحالي", f"{share:,.2f} ريال")
+            df_calc = df.copy()
+            df_calc["المبلغ المستحق"] = round(share, 2)
+            st.dataframe(df_calc, use_container_width=True, hide_index=True)
+            
+            # بناء صفحة تقرير التقسيم
+            h_rows_fin = "".join([f"<tr><td>{r['الاسم']}</td><td>{r['كود العائلة']}</td><td>{share:,.2f} ريال</td></tr>" for _, r in df_calc.iterrows()])
+            html_fin = f"""<html dir="rtl"><head><meta charset="utf-8"></head><body onload="window.print()"><h2>تقرير تقسيم المستحقات المالي - جماعة معلين</h2><p><b>المناسبة:</b> {reason} | <b>المبلغ الإجمالي:</b> {amt:,.2f} ريال</p><table border="1" cellpadding="10" style="border-collapse:collapse; width:100%;"><thead><tr style="background:#b71c1c; color:white;"><th>اسم فرد الجماعة</th><th>كود العائلة</th><th>المبلغ المستحق سداده</th></tr></thead><tbody>{h_rows_fin}</tbody></table></body></html>"""
+            st.download_button(f"📥 تحميل تقرير تقسيم ({reason}) كـ PDF", data=html_fin, file_name=f"تقرير_تقسيم_{reason}.html", mime="text/html", key="download_financial_pdf_btn_key")
 
-            if total_amount > 0:
-                share_per_member = total_amount / total_members
-                st.markdown("### 📊 نتيجة احتساب حصص التوزيع المالي الحالي:")
-                
-                col_s1, col_s2 = st.columns(2)
-                with col_s1: st.metric(label="💰 نصيب الفرد الواحد من هذا المبلغ", value=f"{share_per_member:,.2f} ريال")
-                with col_s2: st.metric(label="👥 إجمالي عدد أفراد الجماعة المستحقين", value=f"{total_members} فرد")
-                
-                df_calc = df_current.copy()
-                df_calc["المبلغ المطلوب سداده (ريال)"] = round(share_per_member, 2)
-                
-                st.markdown("#### 📋 كشف تفصيلي بتوزيع المبالغ الحالية:")
-                st.dataframe(df_calc, use_container_width=True, hide_index=True)
-                
-                st.markdown("---")
-                st.markdown("### 🖨️ طباعة المستند والتقرير الخاص بهذا التقسيم المالي")
-                
-                pdf_rows_html = ""
-                for _, r in df_calc.iterrows():
-                    pdf_rows_html += f"<tr><td>{r['الاسم']}</td><td>{r['كود العائلة']}</td><td>{share_per_member:,.2f} ريال</td></tr>"
-                
-                financial_pdf_report = '<html dir="rtl" lang="ar"><head><meta charset="utf-8"><style>'
-                financial_pdf_report += "body { font-family: 'Arial', sans-serif; padding: 40px; text-align: right; background-color: #ffffff; } "
-                financial_pdf_report += ".header-title { color: #b71c1c; text-align: center; border-bottom: 3px solid #b71c1c; padding-bottom: 12px; font-size: 24px; } "
-                financial_pdf_report += f".summary-box {{ background-color: #f8f9fa; border-right: 6px solid #b71c1c; padding: 15px; margin: 20px 0; font-size: 16px; line-height: 1.8; }} "
-                financial_pdf_report += "table { width:100%; border-collapse:collapse; margin-top: 25px; } "
-                financial_pdf_report += "th, td { border:1px solid #dddddd; padding:12px; font-size:15px; text-align: right; } "
-                financial_pdf_report += "th { background-color: #b71c1c; color: white; font-weight: bold; } "
-                financial_pdf_report += "tr:nth-child(even) { background-color: #f2f2f2; } "
-                financial_pdf_report += ".print-button { display:block; width:100%; padding:15px; background-color:#1976d2; color:white; font-size:18px; font-weight:bold; text-align:center; border:none; border-radius:8px; cursor:pointer; margin-bottom:25px; } "
-                financial_pdf_report += "@media print { .print-button { display:none; } } "
-                financial_pdf_report += f'</style></head><body><button class="print-button" onclick="window.print()">🖨️ اضغط هنا الآن لحفظ هذا التقرير المالي كملف PDF</button>'
-                financial_pdf_report += f'<h2 class="header-title">تقرير مالي رسمي خاص بتقسيم المستحقات - جماعة معلين</h2>'
-                financial_pdf_report += f'<div class="summary-box"><b>📌 موضوع ومناسبة التقسيم:</b> {reason}<br><b>💰 إجمالي المبلغ المالي المطلوب تقسيمه:</b> {total_amount:,.2f} ريال سعودي<br><b>👥 إجمالي عدد الأفراد المسجلين والمستحقين للسداد:</b> {total_members} فرد<br><b>💵 المطالبة المالية المقررة الفرد الواحد:</b> {share_per_member:,.2f} ريال سعودي بالتساوي<br></div>'
-                financial_pdf_report += f'<table><thead><tr><th>اسم فرد الجماعة</th><th>كود عائلة العضو</th><th>المبلغ المالي المستحق سداده</th></tr></thead><tbody>{pdf_rows_html}</tbody></table><br><br><br><p style="text-align:center; font-size:12px; color:#555555;">مستند رسمي صادر إلكترونياً عن نظام إدارة شؤون جماعة معلين الرقمي</p></body></html>'
-                
+    # 2. إدارة الأعضاء (الإضافة والحذف الفوري)
+    with tab2:
+        st.subheader("➕ إضافة عضو جديد للجماعة")
+        n_name = st.text_input("اسم العضو الكامل:", key="mem_add_name_field")
+        n_code = st.text_input("كود العائلة الحالي:", key="mem_add_code_field")
+        n_paid = st.selectbox("تم دفع الصندوق؟", ["نعم", "لا"], key="mem_add_paid_field")
+        n_gender = st.selectbox("الجنس الحالي:", ["ذكر", "أنثى"], key="mem_add_gender_field")
+        
+        if st.button("➕ تسجيل العضو في النظام", key="execute_add_member_action_btn"):
+            if n_name.strip() and n_code.strip():
+                if not any(d['الاسم'] == n_name.strip() for d in st.session_state.members_db):
+                    st.session_state.members_db.append({"الاسم": n_name.strip(), "كود العائلة": n_code.strip().upper(), "تم دفع الصندوق": n_paid, "الجنس": n_gender})
+                    st.success("تم تسجيل العضو بنجاح.")
+                    st.rerun()
+                else: st.warning("الاسم مسجل مسبقاً.")
+            else: st.error("يرجى ملء الحقول.")
+
+        st.markdown("---")
+        st.subheader("📋 قائمة الأعضاء الحالية وخيار الحذف")
+        for idx, m in enumerate(list(st.session_state.members_db)):
+            col_txt, col_btn = st.columns([4, 1])
+            col_txt.info(f"👤 {m['الاسم']} | عائلة: {m['كود العائلة']} | صندوق: {m['تم دفع الصندوق']} | جنس: {m['الجنس']}")
+            if col_btn.button("🗑️ حذف العضو", key=f"del_member_id_secure_{idx}"):
+                st.session_state.members_db = [item for item in st.session_state.members_db if item["الاسم"] != m["الاسم"]]
+                st.success("تم الحذف بنجاح.")
+                st.rerun()
+
+    # 3. لوحة التقارير والفرز الثلاثي (Excel/Word/PDF)
+    with tab3:
+        st.subheader("📊 الفرز واستخراج الكشوفات والتقارير الشاملة")
+        sort_opt = st.selectbox("ترتيب كشف الأسماء حسب:", ["أبجدي", "كود العائلة", "بدون ترتيب"], key="reports_sort_option_select")
+        
+        df_rep = df.copy()
+        if sort_opt == "أبجدي": df_rep = df_rep.sort_values(by="الاسم")
+        elif sort_opt == "كود العائلة": df_rep = df_rep.sort_values(by="كود العائلة")
+        
+        st.dataframe(df_rep, use_container_width=True, hide_index=True)
+        st.markdown("---")
+        
+        cb1, cb2, cb3 = st.columns(3)
+        # Excel
+        csv = df_rep.to_csv(index=False).encode('utf-8-sig')
+        cb1.download_button("📥 تحميل كشف كملف Excel", data=csv, file_name="تقرير_جماعة_معلين.csv", mime="text/csv", key="excel_download_action_key")
+        
+        # Word
+        w_text = f"تقرير جماعة معلين المفرز\nإجمالي الأعضاء: {total}\n\n"
+        for _, r in df_rep.iterrows(): w_text += f"- {r['الاسم']} | عائلة: {r['كود العائلة']} | صندوق: {r['تم دفع الصندوق']} | جنس: {r['الجنس']}\n"
+        cb2.download_button("📥 تحميل كشف كمستند Word", data=w_text.encode('utf-8-sig'), file_name="تقرير_جماعة_معلين.doc", mime="application/msword", key="word_download_action_key")
+        
+        # PDF
+        h_rows = "".join([f"<tr><td>{r['الاسم']}</td><td>{r['كود العائلة']}</td><td>{r['تم دفع الصندوق']}</td><td>{r['الجنس']}</td></tr>" for _, r in df_rep.iterrows()])
+        html = f"""<html dir="rtl"><head><meta charset="utf-8"></head><body onload="window.print()"><h2>تقرير كشف أسماء جماعة معلين</h2><table border="1" cellpadding="10" style="border-collapse:collapse; width:100%;"><thead><tr style="background:#2e7d32; color:white;"><th>الاسم</th><th>العائلة</th><th>الصندوق</th><th>الجنس</th></tr></thead><tbody>{h_rows}</tbody></table></body></html>"""
+        cb3.download_button("📥 تحميل للطباعة كـ PDF", data=html, file_name="تقرير_جماعة_معلين_PDF.html", mime="text/html", key="pdf_download_action_key")
+
+    # 4. حسابات المستخدمين (إضافة وحذف المسؤولين)
+    with tab4:
+        st.subheader("🔒 إضافة حساب مستخدم جديد وصلاحية للدخول")
+        new_u = st.text_input("اسم المستخدم الجديد بالسيستم:", key="user_add_name_field")
+        new_p = st.text_input("تعيين كلمة السر الخاصة به:", key="user_add_pass_field")
+        
+        if st.button("🔐 اعتماد الحساب الجديد", key="execute_add_user_action_btn"):
+            if new_u.strip() and new_p.strip():
+                st.session_state.users_db[new_u.strip()] = new_p.strip()
+                st.success("تم إنشاء واعتماد الحساب الجديد!")
+                st.rerun()
+            else: st.error("يرجى إدخال البيانات كاملة.")
+            
+        st.markdown("---")
+        st.subheader("📋 الحسابات والتراخيص النشطة حالياً بالسيستم:")
+        for usr, psw in list(st.session_state.users_db.items()):
+            cu1, cu2 = st.columns([4, 1])
