@@ -26,7 +26,7 @@ st.markdown("""
     </style>
     """, unsafe_allow_html=True)
 
-# 2. تهيئة قاعدة البيانات الأساسية في الذاكرة (Session State)
+# 2. تهيئة قاعدة البيانات الأساسية في الذاكرة (Session State) لضمان حفظ العمليات
 if 'users_db' not in st.session_state:
     st.session_state.users_db = {"admin": "123"}
 
@@ -40,7 +40,7 @@ if 'members_db' not in st.session_state:
         {"الاسم": "فاطمة المعلي", "كود العائلة": "B2", "تم دفع الصندوق": "نعم", "الجنس": "أنثى"}
     ]
 
-# حساب الإحصائيات العامة والمالية للموقع
+# حساب الإحصائيات العامة والمالية للموقع بشكل فوري
 total_members = len(st.session_state.members_db)
 males = sum(1 for m in st.session_state.members_db if m["الجنس"] == "ذكر")
 females = total_members - males
@@ -63,14 +63,14 @@ if not st.session_state.logged_in:
     if st.button("دخول للنظام", key="login_action_btn"):
         if u_input in st.session_state.users_db and st.session_state.users_db[u_input] == p_input:
             st.session_state.logged_in = True
-            st.success("تم التحقق بنجاح..")
+            st.success("تم الدخول بنجاح.")
             st.rerun()
         else: st.error("اسم المستخدم أو كلمة السر غير صحيحة.")
     st.markdown('</div>', unsafe_allow_html=True)
     st.markdown('</div>', unsafe_allow_html=True)
 
 # ==========================================
-# 💻 واجـهـة الـمـوقـع بـعـد الـدخـول
+# 💻 واجـهـة الـمـوقـع بـعـد الـدخـول الصحيح
 # ==========================================
 else:
     if st.button("🚪 تسجيل الخروج", key="logout_action_btn"):
@@ -80,7 +80,7 @@ else:
     st.title("⚖️ النظام الإلكتروني لإدارة وتقسيم المستحقات - جماعة معلين")
     st.markdown("---")
 
-    # 📊 عرض لوحة الإحصائيات العامة والمالية
+    # 📊 عرض لوحة الإحصائيات العامة المحدثة
     st.markdown("### 📊 لوحة الإحصائيات العامة والمالية للموقع")
     c1, c2, c3, c4, c5, c6 = st.columns(6)
     c1.markdown(f'<div class="stat-box"><b>👥 إجمالي الأعضاء</b><br><span style="font-size:22px; color:#2e7d32; font-weight:bold;">{total_members}</span></div>', unsafe_allow_html=True)
@@ -95,7 +95,7 @@ else:
     tab1, tab2, tab3, tab4 = st.tabs(["💰 1. حساب وتقسيم المبالغ الجديد", "👥 2. إدارة وإضافة الأعضاء", "📊 3. استخراج التقارير المتقدمة", "🔒 4. صلاحيات وحسابات المستخدمين"])
 
     # ------------------------------------------
-    # التبويب الأول: تقسيم المبالغ الجديد والتقرير الخاص بالتقسيم
+    # التبويب الأول: تقسيم المبالغ والتقرير المالي الخاص به بصيغة PDF
     # ------------------------------------------
     with tab1:
         st.subheader("💵 إضافة وتقسيم مبلغ مالي جديد على الجماعة بالتساوي")
@@ -122,14 +122,11 @@ else:
                 
                 st.markdown("---")
                 st.markdown("### 🖨️ طباعة المستند والتقرير الخاص بهذا التقسيم المالي")
-                st.caption("اضغط على الزر الأحمر بالأسفل، لفتح نافذة طباعة مستند الـ PDF الخاص بهذا التقسيم بالتحديد.")
                 
-                # تم حل مشكلة الـ f-string السابقة عبر تجزئة بناء القوالب بشكل هندسي بسيط ونظيف
                 pdf_rows_html = ""
                 for _, r in df_calc.iterrows():
                     pdf_rows_html += f"<tr><td>{r['الاسم']}</td><td>{r['كود العائلة']}</td><td>{share_per_member:,.2f} ريال</td></tr>"
                 
-                # تجميع تقرير ملف الطباعة النهائي
                 financial_pdf_report = '<html dir="rtl" lang="ar"><head><meta charset="utf-8"><style>'
                 financial_pdf_report += "body { font-family: 'Arial', sans-serif; padding: 40px; text-align: right; background-color: #ffffff; } "
                 financial_pdf_report += ".header-title { color: #b71c1c; text-align: center; border-bottom: 3px solid #b71c1c; padding-bottom: 12px; font-size: 24px; } "
@@ -143,3 +140,5 @@ else:
                 financial_pdf_report += f'</style></head><body><button class="print-button" onclick="window.print()">🖨️ اضغط هنا الآن لحفظ هذا التقرير المالي كملف PDF</button>'
                 financial_pdf_report += f'<h2 class="header-title">تقرير مالي رسمي خاص بتقسيم المستحقات - جماعة معلين</h2>'
                 financial_pdf_report += f'<div class="summary-box"><b>📌 موضوع ومناسبة التقسيم:</b> {reason}<br><b>💰 إجمالي المبلغ المالي المطلوب تقسيمه:</b> {total_amount:,.2f} ريال سعودي<br><b>👥 إجمالي عدد الأفراد المسجلين والمستحقين للسداد:</b> {total_members} فرد<br><b>💵 المطالبة المالية المقررة الفرد الواحد:</b> {share_per_member:,.2f} ريال سعودي بالتساوي<br></div>'
+                financial_pdf_report += f'<table><thead><tr><th>اسم فرد الجماعة</th><th>كود عائلة العضو</th><th>المبلغ المالي المستحق سداده</th></tr></thead><tbody>{pdf_rows_html}</tbody></table><br><br><br><p style="text-align:center; font-size:12px; color:#555555;">مستند رسمي صادر إلكترونياً عن نظام إدارة شؤون جماعة معلين الرقمي</p></body></html>'
+                
