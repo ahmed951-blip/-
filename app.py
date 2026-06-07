@@ -56,7 +56,8 @@ else:
     st.markdown("---")
 
     # حساب الإحصائيات العامة والمالية بدقة (تحديث فوري لـ 500 ريال عند اختيار نعم)
-    total = len(st.session_state.members_db)
+    df = pd.DataFrame(st.session_state.members_db)
+    total = len(df)
     males = sum(1 for m in st.session_state.members_db if m["الجنس"] == "ذكر")
     females = total - males
     paid = sum(1 for m in st.session_state.members_db if m["تم دفع الصندوق"] == "نعم")
@@ -146,7 +147,7 @@ else:
         st.markdown("---")
         st.subheader("📋 قائمة التحكم بالأعضاء (تحرير / حذف)")
         for idx, m in enumerate(list(st.session_state.members_db)):
-            col_txt, col_edit, col_del = st.columns([4, 1, 1])
+            col_txt, col_edit, col_del = st.columns(3)
             with col_txt:
                 st.info(f"👤 {m['الاسم']} | عائلة: {m['كود العائلة']} | صندوق: {m['تم دفع الصندوق']} | جنس: {m['الجنس']}")
             
