@@ -71,11 +71,11 @@ if not st.session_state.logged_in:
 # ==========================================
 else:
     # شريط علوي لعرض اسم المستخدم الحالي وزر تسجيل الخروج
-    col_header, col_logout = st.columns()
+    col_header, col_logout = st.columns([4, 1])
     with col_header:
         st.subheader(f"👋 مرحباً بك: {st.session_state.current_user} ({st.session_state.user_role})")
     with col_logout:
-        if st.button("🚪 تسجيل الخروج"):
+        if st.button("🚪 تسجيل الخروج", key="logout_btn_top"):
             st.session_state.logged_in = False
             st.session_state.current_user = ""
             st.session_state.user_role = ""
@@ -87,20 +87,13 @@ else:
     # تحويل قاعدة البيانات الحالية إلى DataFrame لسهولة العرض والفرز
     df_current = pd.DataFrame(st.session_state.members_db)
 
-    # إنشاء التبويبات بطريقة الفصل البرمجي الفردي لضمان التشغيل الصحيح
-    if st.session_state.user_role == "مسؤول رئيسي":
-        tab1, tab2, tab3, tab4 = st.tabs([
-            "💰 1. حساب وتقسيم المبالغ", 
-            "👥 2. إدارة وإضافة الأعضاء", 
-            "📊 3. التقارير والفرز المتقدم (PDF)",
-            "🔒 4. إدارة حسابات الدخول (خاص بالآدمن)"
-        ])
-    else:
-        tab1, tab2, tab3 = st.tabs([
-            "💰 1. حساب وتقسيم المبالغ", 
-            "👥 2. إدارة وإضافة الأعضاء", 
-            "📊 3. التقارير والفرز المتقدم (PDF)"
-        ])
+    # إنشاء التبويبات بشكل ثابت ومستقر لا يتغير هندسياً لمنع انهيار الصفحة
+    tab1, tab2, tab3, tab4 = st.tabs([
+        "💰 1. حساب وتقسيم المبالغ", 
+        "👥 2. إدارة وإضافة الأعضاء", 
+        "📊 3. التقارير والفرز المتقدم (PDF)",
+        "🔒 4. لوحة حماية المستخدمين"
+    ])
 
     # ------------------------------------------
     # التبويب الأول: الحسابات والتقسيم المالي
@@ -112,9 +105,9 @@ else:
         
         col_m1, col_m2 = st.columns(2)
         with col_m1:
-            total_amount = st.number_input("أدخل المبلغ المالي الإجمالي المراد تقسيمه (ريال):", min_value=0.0, value=0.0, step=100.0)
+            total_amount = st.number_input("أدخل المبلغ المالي الإجمالي المراد تقسيمه (ريال):", min_value=0.0, value=0.0, step=100.0, key="calc_amount_input")
         with col_m2:
-            reason = st.text_input("سبب أو مناسبة التقسيم:", value="دية عامة")
+            reason = st.text_input("سبب أو مناسبة التقسيم:", value="دية عامة", key="calc_reason_input")
 
         if total_amount > 0 and total_members > 0:
             share_per_member = total_amount / total_members
@@ -139,16 +132,16 @@ else:
         st.subheader("➕ إضافة عضو جديد للجماعة")
         col_in1, col_in2, col_in3, col_in4 = st.columns(4)
         with col_in1:
-            mem_name = st.text_input("اسم العضو الثلاثي:", placeholder="مثال: علي محمد المعلي")
+            mem_name = st.text_input("اسم العضو الثلاثي:", placeholder="مثال: علي محمد المعلي", key="add_mem_name")
         with col_in2:
-            mem_code = st.text_input("كود العائلة:", placeholder="مثال: A1")
+            mem_code = st.text_input("كود العائلة:", placeholder="مثال: A1", key="add_mem_code")
         with col_in3:
-            mem_paid = st.selectbox("تم دفع مبلغ الصندوق؟", ["نعم", "لا"])
+            mem_paid = st.selectbox("تم دفع مبلغ الصندوق؟", ["نعم", "لا"], key="add_mem_paid")
         with col_in4:
-            mem_gender = st.selectbox("الجنس:", ["ذكر", "أنثى"])
+            mem_gender = st.selectbox("الجنس:", ["ذكر", "أنثى"], key="add_mem_gender")
             
         st.markdown('<div class="main-btn">', unsafe_allow_html=True)
-        add_btn = st.button("➕ تسجيل العضو في النظام")
+        add_btn = st.button("➕ تسجيل العضو في النظام", key="submit_new_member_btn")
         st.markdown('</div>', unsafe_allow_html=True)
         
         if add_btn:
@@ -167,12 +160,12 @@ else:
         st.subheader("📋 قائمة التحكم بالأعضاء وحذفهم المباشر")
         if len(st.session_state.members_db) > 0:
             for idx, member in enumerate(st.session_state.members_db):
-                col_show, col_del_btn = st.columns()
+                col_show, col_del_btn = st.columns([5, 1])
                 with col_show:
                     st.info(f"👤 **{member['الاسم']}** | 🏠 كود العائلة: {member['كود العائلة']} | 💰 دفع الصندوق: {member['تم دفع الصندوق']} | 🧬 الجنس: {member['الجنس']}")
                 with col_del_btn:
                     st.markdown('<div class="delete-btn">', unsafe_allow_html=True)
-                    if st.button("🗑️ حذف", key=f"del_mem_{idx}", use_container_width=True):
+                    if st.button("🗑️ حذف", key=f"del_mem_secure_{idx}", use_container_width=True):
                         st.session_state.members_db.pop(idx)
                         st.success(f"تم الحذف بنجاح.")
                         st.rerun()
@@ -188,14 +181,13 @@ else:
         if len(st.session_state.members_db) > 0:
             col_f1, col_f2, col_f3, col_f4 = st.columns(4)
             with col_f1:
-                sort_option = st.selectbox("🎯 خيار فرز وترتيب القائمة:", ["أبجدي (حسب الاسم)", "حسب كود العائلة", "حسب الجنس", "بدون ترتيب"])
+                sort_option = st.selectbox("🎯 خيار فرز وترتيب القائمة:", ["أبجدي (حسب الاسم)", "حسب كود العائلة", "حسب الجنس", "بدون ترتيب"], key="report_sort_select")
             with col_f2:
-                filter_family = st.selectbox("🏠 تصفية لعائلة محددة:", ["الكل"] + list(df_current["كود العائلة"].unique()))
+                filter_family = st.selectbox("🏠 تصفية لعائلة محددة:", ["الكل"] + list(df_current["كود العائلة"].unique()), key="report_filter_fam")
             with col_f3:
-                filter_gender = st.selectbox("🧬 تصفية للجنس:", ["الكل", "ذكر", "أنثى"])
+                filter_gender = st.selectbox("🧬 تصفية للجنس:", ["الكل", "ذكر", "أنثى"], key="report_filter_gender")
             with col_f4:
-                filter_paid = st.selectbox("💰 دفع الصندوق:", ["الكل", "نعم", "لا"])
+                filter_paid = st.selectbox("💰 دفع الصندوق:", ["الكل", "نعم", "لا"], key="report_filter_paid")
                 
-            # تطبيق الفلترة
+            # تطبيق الفلترة الديناميكية المحدثة
             df_filtered = df_current.copy()
-            if filter_family != "الكل": df_filtered = df_filtered[df_filtered["كود العائلة"] == filter_family]
