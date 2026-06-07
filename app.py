@@ -15,7 +15,7 @@ st.markdown("""
     .main-btn>div>button { background-color: #2e7d32; color: white; padding: 10px; }
     .excel-btn>div>button { background-color: #1f7244; color: white; font-weight: bold; }
     .word-btn>div>button { background-color: #2b579a; color: white; font-weight: bold; }
-    .pdf-btn>div>button { background-color: #b71c1c; color: white; font-weight: bold; }
+    .pdf-btn>div>button { background-color: #b71c1c; color: white; border-radius: 8px; font-weight: bold; }
     .delete-btn>div>button { background-color: #d32f2f; color: white; border: none; height: 38px; }
     .edit-btn>div>button { background-color: #f57c00; color: white; border: none; height: 38px; }
     
@@ -79,7 +79,6 @@ if not st.session_state.logged_in:
 # 💻 واجـهـة الـمـوقـع بـعـد الـدخـول
 # ==========================================
 else:
-    # تم ضبط وتحديد رقم 2 لإنشاء عمودين متناسقين تماماً
     col_header, col_logout = st.columns(2)
     with col_header: st.subheader(f"👋 مرحباً بك: {st.session_state.current_user} ({st.session_state.user_role})")
     with col_logout:
@@ -93,10 +92,10 @@ else:
     st.title("⚖️ النظام الإلكتروني لإدارة وتقسيم المستحقات - جماعة معلين")
     st.markdown("---")
 
-    # 📊 لوحة الإحصائيات العامة والمالية للموقع
+    # 📊 تم تصحيح صياغة الكود هنا تماماً لتفادي الـ SyntaxError قطعياً
     total_registered_members = len(st.session_state.members_db)
     total_males = sum(1 for m in st.session_state.members_db if m["الجنس"] == "ذكر")
-    total_females = sum(1_for_m_in_st.session_state.members_db_if_m["الجنس"] == "أنثى")
+    total_females = sum(1 for m in st.session_state.members_db if m["الجنس"] == "أنثى")
     total_paid = sum(1 for m in st.session_state.members_db if m["تم دفع الصندوق"] == "نعم")
     total_not_paid = sum(1 for m in st.session_state.members_db if m["تم دفع الصندوق"] == "لا")
     total_fund_amount = total_paid * 500
@@ -136,7 +135,7 @@ else:
         else: st.error("قائمة الأسماء فارغة.")
 
     # ------------------------------------------
-    # التبويب الثاني: إدارة وإضافة الأعضاء (إصلاح الأقواس الحاسم للأعضاء)
+    # التبويب الثاني: إدارة وإضافة الأعضاء
     # ------------------------------------------
     with tab2:
         if st.session_state.editing_idx is not None:
@@ -166,3 +165,4 @@ else:
                     st.session_state.editing_idx = None
                     st.rerun()
         else:
+            st.subheader("➕ إضافة عضو جديد")
