@@ -1,10 +1,10 @@
 import streamlit as st
 import pandas as pd
+import base64
 
-# 1. إعدادات الصفحة الأساسية وتنسيق المظهر
+# 1. إعدادات الصفحة الأساسية وتنسيق المظهر من اليمين لليسار
 st.set_page_config(page_title="نظام جماعة معلين الرقمي", page_icon="⚖️", layout="wide")
 
-# تطبيق تصميم مرئي منظم من اليمين إلى اليسار (RTL) وتنسيق الأزرار والجداول
 st.markdown("""
     <style>
     .reportview-container .main .block-container{ max-width: 95%; }
@@ -22,8 +22,7 @@ st.markdown("""
 st.title("⚖️ النظام الإلكتروني لإدارة وتقسيم المستحقات - جماعة معلين")
 st.markdown("---")
 
-# 2. إدارة قاعدة البيانات المؤقتة (Session State)
-# نستخدم هيكلة تحتوي على (الاسم، كود العائلة، حالة الدفع، الجنس)
+# 2. إدارة قاعدة البيانات الافتراضية للجماعة في الجلسة الحالية
 if 'members_db' not in st.session_state:
     st.session_state.members_db = [
         {"الاسم": "أحمد المعلي", "كود العائلة": "A1", "تم دفع الصندوق": "نعم", "الجنس": "ذكر"},
@@ -33,14 +32,14 @@ if 'members_db' not in st.session_state:
         {"الاسم": "خالد المعلي", "كود العائلة": "C3", "تم دفع الصندوق": "لا", "الجنس": "ذكر"}
     ]
 
-# تحويل البيانات الحالية إلى DataFrame لسهولة المعالجة والفرز
+# مزامنة البيانات الحالية
 df_current = pd.DataFrame(st.session_state.members_db)
 
-# إنشاء التبويبات لتنظيم واجهة الموقع بشكل مرتب ومنفصل
+# إنشاء التبويبات الثلاثة المنظمة
 tab_calc, tab_manage, tab_reports = st.tabs([
     "💰 1. حساب وتقسيم المبالغ", 
     "👥 2. إدارة وإضافة الأعضاء", 
-    "📊 3. التقارير والفرز المتقدم"
+    "📊 3. التقارير والفرز المتقدم (PDF)"
 ])
 
 # ==========================================
@@ -59,8 +58,6 @@ with tab_calc:
 
     if total_amount > 0 and total_members > 0:
         share_per_member = total_amount / total_members
-        
-        # عرض الإحصائيات المالية
         st.markdown("### 📊 نتيجة التوزيع المالي الإجمالي:")
         col_s1, col_s2 = st.columns(2)
         with col_s1:
@@ -68,10 +65,8 @@ with tab_calc:
         with col_s2:
             st.metric(label="👥 عدد الأفراد المستحقين", value=f"{total_members} فرد")
             
-        # جدول الحصص
         df_calc = df_current.copy()
         df_calc["المبلغ المستحق (ريال)"] = round(share_per_member, 2)
-        
         st.markdown("#### 📋 جدول تفصيل توزيع المستحقات:")
         st.dataframe(df_calc, use_container_width=True, hide_index=True)
     elif total_amount == 0:
@@ -82,9 +77,7 @@ with tab_calc:
 # ==========================================
 with tab_manage:
     st.subheader("➕ إضافة عضو جديد للجماعة")
-    
-    # واجهة الإدخال مرتبة على شكل أعمدة أفقية
-    col_in1, col_in2, col_in3, col_in4 = st.columns([3, 2, 2, 2])
+    col_in1, col_in2, col_in3, col_in4 = st.columns(4)
     with col_in1:
         mem_name = st.text_input("اسم العضو الثلاثي:", placeholder="مثال: علي محمد المعلي")
     with col_in2:
@@ -100,7 +93,6 @@ with tab_manage:
     
     if add_btn:
         if mem_name.strip() != "" and mem_code.strip() != "":
-            # التحقق من عدم تكرار الاسم
             if not any(d['الاسم'] == mem_name.strip() for d in st.session_state.members_db):
                 new_entry = {
                     "الاسم": mem_name.strip(),
@@ -109,7 +101,7 @@ with tab_manage:
                     "الجنس": mem_gender
                 }
                 st.session_state.members_db.append(new_entry)
-                st.success(f"تم تسجيل العضو 【 {mem_name} 】 بنجاح في النظام.")
+                st.success(f"تم تسجيل العضو 【 {mem_name} 】 بنجاح.")
                 st.rerun()
             else:
                 st.warning("هذا الاسم مسجل مسبقاً في النظام.")
@@ -118,10 +110,9 @@ with tab_manage:
 
     st.markdown("---")
     st.subheader("📋 قائمة التحكم بالأعضاء وحذفهم")
-    
     if len(st.session_state.members_db) > 0:
         for idx, member in enumerate(st.session_state.members_db):
-            col_show, col_del_btn = st.columns([6, 1])
+            col_show, col_del_btn = st.columns([5, 1])
             with col_show:
                 st.info(f"👤 **{member['الاسم']}** | 🏠 كود العائلة: {member['كود العائلة']} | 💰 دفع الصندوق: {member['تم دفع الصندوق']} | 🧬 الجنس: {member['الجنس']}")
             with col_del_btn:
@@ -135,60 +126,85 @@ with tab_manage:
         st.warning("لا يوجد أعضاء مسجلين حالياً.")
 
 # ==========================================
-# التبويب الثالث: التقارير والفرز المتقدم
+# التبويب الثالث: التقارير والفرز المتقدم (تصدير PDF)
 # ==========================================
 with tab_reports:
-    st.subheader("📊 لوحة التقارير والفرز الذكي")
+    st.subheader("📊 لوحة التقارير والفرز الذكي وتصدير PDF")
     
     if len(st.session_state.members_db) > 0:
-        # خيارات التصفية والفرز
-        st.markdown("#### 🔍 حدد خيارات الفرز والتصفية المخصصة لتوليد التقرير:")
+        st.markdown("#### 🔍 حدد خيارات ترتيب وفلترة كشف أسماء الجماعة:")
         
         col_f1, col_f2, col_f3 = st.columns(3)
         with col_f1:
-            sort_option = st.selectbox("🎯 طريقة ترتيب السجلات:", ["أبجدي (حسب الاسم)", "حسب كود العائلة", "بدون ترتيب"])
+            sort_option = st.selectbox("🎯 خيار فرز وترتيب القائمة:", ["أبجدي (حسب الاسم)", "حسب كود العائلة", "حسب الجنس", "بدون ترتيب"])
         with col_f2:
-            filter_family = st.selectbox("🏠 تصفية حسب عائلة محددة:", ["الكل"] + list(df_current["كود العائلة"].unique()))
+            filter_family = st.selectbox("🏠 تصفية لعائلة محددة:", ["الكل"] + list(df_current["كود العائلة"].unique()))
         with col_f3:
-            filter_gender = st.selectbox("🧬 تصفية حسب الجنس:", ["الكل", "ذكر", "أنثى"])
+            filter_gender = st.selectbox("🧬 تصفية للجنس:", ["الكل", "ذكر", "أنثى"])
             
-        col_f4 = st.columns(1)[0]
-        with col_f4:
-            filter_paid = st.selectbox("💰 تصفية حسب حالة دفع الصندوق:", ["الكل", "نعم", "لا"])
-
-        # تطبيق عمليات التصفية بناء على اختيارات المستخدم
+        # تطبيق التصفية والفلترة
         df_filtered = df_current.copy()
-        
         if filter_family != "الكل":
             df_filtered = df_filtered[df_filtered["كود العائلة"] == filter_family]
-            
         if filter_gender != "الكل":
             df_filtered = df_filtered[df_filtered["الجنس"] == filter_gender]
-            
-        if filter_paid != "الكل":
-            df_filtered = df_filtered[df_filtered["تم دفع الصندوق"] == filter_paid]
 
-        # تطبيق عمليات الترتيب والفرز
+        # تطبيق خيارات الترتيب والفرز المطلوبة
         if sort_option == "أبجدي (حسب الاسم)":
             df_filtered = df_filtered.sort_values(by="الاسم")
         elif sort_option == "حسب كود العائلة":
             df_filtered = df_filtered.sort_values(by="كود العائلة")
+        elif sort_option == "حسب الجنس":
+            df_filtered = df_filtered.sort_values(by="الجنس")
 
-        # عرض التقرير المفلتر النهائي
-        st.markdown(f"### 📋 التقرير الناتج ({len(df_filtered)} عضو مطابق للفلاتر):")
+        # عرض الكشف المرتب والمفلتر على الواجهة
+        st.markdown(f"### 📋 كشف الأسماء الناتج المطابق للفرز والفلترة ({len(df_filtered)} عضو):")
         st.dataframe(df_filtered, use_container_width=True, hide_index=True)
         
-        # تصدير التقرير الحالي المفرز إلى كشف مالي متوافق مع Excel
-        csv_report = df_filtered.to_csv(index=False).encode('utf-8-sig')
-        
-        st.markdown('<div class="main-btn">', unsafe_allow_html=True)
-        st.download_button(
-            label="📥 تحميل هذا التقرير المفرز كملف Excel (CSV)",
-            data=csv_report,
-            file_name="تقرير_مفرز_جماعة_معلين.csv",
-            mime='text/csv',
-            use_container_width=True
-        )
-        st.markdown('</div>', unsafe_allow_html=True)
-    else:
-        st.warning("يرجى إضافة أعضاء أولاً في التبويب الثاني لتتمكن من إنشاء وتقسيم التقارير.")
+        # دالة ذكية ومستقرة لتوليد مستند PDF عربي عبر كود HTML مطبوع
+        def convert_df_to_pdf_html(dataframe, current_sort):
+            rows_html = ""
+            for index, row in dataframe.iterrows():
+                rows_html += f"""
+                <tr>
+                    <td>{row['الاسم']}</td>
+                    <td>{row['كود العائلة']}</td>
+                    <td>{row['تم دفع الصندوق']}</td>
+                    <td>{row['الجنس']}</td>
+                </tr>
+                """
+            
+            html_content = f"""
+            <html dir="rtl" lang="ar">
+            <head>
+                <meta charset="utf-8">
+                <style>
+                    body {{ font-family: 'Arial', sans-serif; text-align: right; padding: 20px; }}
+                    h2 {{ color: #2e7d32; border-bottom: 2px solid #2e7d32; padding-bottom: 10px; text-align: center; }}
+                    .meta-info {{ margin-bottom: 20px; font-size: 14px; background: #f5f5f5; padding: 10px; border-radius: 5px; }}
+                    table {{ width: 100%; border-collapse: collapse; margin-top: 10px; direction: rtl; }}
+                    th, td {{ border: 1px solid #ddd; padding: 12px; text-align: right; }}
+                    th {{ background-color: #2e7d32; color: white; }}
+                    tr:nth-child(even) {{ background-color: #f9f9f9; }}
+                </style>
+            </head>
+            <body>
+                <h2>تقرير كشف أسماء جماعة معلين الرسمي</h2>
+                <div class="meta-info">
+                    <strong>نوع ترتيب السجلات:</strong> {current_sort}<br>
+                    <strong>إجمالي عدد الأفراد في هذا الكشف:</strong> {len(dataframe)} فرد<br>
+                </div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>اسم العضو</th>
+                            <th>كود العائلة</th>
+                            <th>تم دفع الصندوق</th>
+                            <th>الجنس</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {rows_html}
+                    </tbody>
+                </table>
+                <br><br>
