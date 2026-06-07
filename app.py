@@ -12,6 +12,9 @@ st.markdown("""
     div[data-testid="stNumberInput"] label, div[data-testid="stTextInput"] label, div[data-testid="stSelectbox"] label { text-align: right; direction: rtl; width: 100%; }
     .stButton>button { width: 100%; font-weight: bold; }
     .main-btn>div>button { background-color: #2e7d32; color: white; border-radius: 8px; padding: 10px; }
+    .excel-btn>div>button { background-color: #1f7244; color: white; border-radius: 8px; font-weight: bold; }
+    .word-btn>div>button { background-color: #2b579a; color: white; border-radius: 8px; font-weight: bold; }
+    .pdf-btn>div>button { background-color: #b71c1c; color: white; border-radius: 8px; font-weight: bold; }
     .delete-btn>div>button { background-color: #d32f2f; color: white; border: none; border-radius: 5px; height: 38px; }
     .login-box { max-width: 450px; margin: 0 auto; padding: 25px; border: 1px solid #ccc; border-radius: 10px; background-color: #f9f9f9; box-shadow: 2px 2px 12px rgba(0,0,0,0.1); }
     .stTabs [data-baseweb="tab-list"] { direction: rtl; justify-content: flex-start; }
@@ -37,13 +40,31 @@ if 'members_db' not in st.session_state:
         {"الاسم": "فاطمة المعلي", "كود العائلة": "B2", "تم دفع الصندوق": "نعم", "الجنس": "أنثى"}
     ]
 
+# حساب الإحصائيات العامة الديناميكية لإظهارها بالأعلى دائماً
+total_registered_members = len(st.session_state.members_db)
+# افتراضياً: يتم حساب المبالغ المتوفرة بالصندوق بناءً على من قام بالدفع (مثلاً 500 ريال لكل من دفع "نعم")
+# يمكنك تغيير الرقم 500 بأي آلية حسابية أخرى تفضلها لاحقاً
+total_fund_amount = sum(500 for member in st.session_state.members_db if member["تم دفع الصندوق"] == "نعم")
+
 # ==========================================
-# شـاشـة تـسـجـيـل الـدخـول
+# 📊 الإحصائيات العامة الثابتة في أعلى الموقع لجميع الزوار
+# ==========================================
+st.markdown("### 📊 إحصائيات صندوق جماعة معلين العامة")
+col_top1, col_top2 = st.columns(2)
+with col_top1:
+    st.metric(label="👥 إجمالي الأعضاء المسجلين حالياً", value=f"{total_registered_members} فرد")
+with col_top2:
+    st.metric(label="💰 إجمالي المبلغ المتوفر بالصندوق (تقديري)", value=f"{total_fund_amount:,.2f} ريال")
+st.markdown("---")
+
+
+# ==========================================
+# 🔐 شـاشـة تـسـجـيـل الـدخـول
 # ==========================================
 if not st.session_state.logged_in:
-    st.markdown("<br><br>", unsafe_allow_html=True)
+    st.markdown("<br>", unsafe_allow_html=True)
     st.markdown('<div class="login-box">', unsafe_allow_html=True)
-    st.subheader("🔐 تسجيل الدخول - نظام جماعة معلين")
+    st.subheader("🔐 تسجيل الدخول للوحة التحكم")
     
     username_input = st.text_input("اسم المستخدم:", key="login_username").strip()
     password_input = st.text_input("كلمة السر:", type="password", key="login_password").strip()
@@ -67,11 +88,11 @@ if not st.session_state.logged_in:
     st.markdown('</div>', unsafe_allow_html=True)
 
 # ==========================================
-# واجـهـة الـمـوقـع الـرئـيـسـيـة بـعـد الـدخـول
+# 💻 واجـهـة الـمـوقـع الـرئـيـسـيـة بـعـد الـدخـول
 # ==========================================
 else:
     # شريط علوي لعرض اسم المستخدم الحالي وزر تسجيل الخروج
-    col_header, col_logout = st.columns([4, 1])
+    col_header, col_logout = st.columns()
     with col_header:
         st.subheader(f"👋 مرحباً بك: {st.session_state.current_user} ({st.session_state.user_role})")
     with col_logout:
@@ -87,12 +108,12 @@ else:
     # تحويل قاعدة البيانات الحالية إلى DataFrame لسهولة العرض والفرز
     df_current = pd.DataFrame(st.session_state.members_db)
 
-    # إنشاء التبويبات بشكل ثابت ومستقر لا يتغير هندسياً لمنع انهيار الصفحة
+    # إنشاء التبويبات الأربعة الثابتة والمستقرة لتفادي انهيار الصفحة وعيوب العرض
     tab1, tab2, tab3, tab4 = st.tabs([
         "💰 1. حساب وتقسيم المبالغ", 
         "👥 2. إدارة وإضافة الأعضاء", 
-        "📊 3. التقارير والفرز المتقدم (PDF)",
-        "🔒 4. لوحة حماية المستخدمين"
+        "📊 3. استخراج التقارير المتقدمة",
+        "🔒 4. صلاحيات وحسابات المستخدمين"
     ])
 
     # ------------------------------------------
@@ -101,7 +122,7 @@ else:
     with tab1:
         st.subheader("💵 إدخال المبالغ وتقسيمها بالتساوي")
         total_members = len(st.session_state.members_db)
-        st.info(f"📊 إجمالي عدد أعضاء الجماعة المسجلين: **{total_members} فرد**")
+        st.info(f"📊 إجمالي عدد أعضاء الجماعة المستحقين للتقسيم: **{total_members} فرد**")
         
         col_m1, col_m2 = st.columns(2)
         with col_m1:
@@ -129,7 +150,7 @@ else:
     # التبويب الثاني: إدارة وإضافة الأعضاء
     # ------------------------------------------
     with tab2:
-        st.subheader("➕ إضافة عضو جديد للجماعة")
+        st.subheader("➕ إضافة عضو جديد لجماعة معلين")
         col_in1, col_in2, col_in3, col_in4 = st.columns(4)
         with col_in1:
             mem_name = st.text_input("اسم العضو الثلاثي:", placeholder="مثال: علي محمد المعلي", key="add_mem_name")
@@ -160,7 +181,7 @@ else:
         st.subheader("📋 قائمة التحكم بالأعضاء وحذفهم المباشر")
         if len(st.session_state.members_db) > 0:
             for idx, member in enumerate(st.session_state.members_db):
-                col_show, col_del_btn = st.columns([5, 1])
+                col_show, col_del_btn = st.columns()
                 with col_show:
                     st.info(f"👤 **{member['الاسم']}** | 🏠 كود العائلة: {member['كود العائلة']} | 💰 دفع الصندوق: {member['تم دفع الصندوق']} | 🧬 الجنس: {member['الجنس']}")
                 with col_del_btn:
@@ -171,23 +192,3 @@ else:
                         st.rerun()
                     st.markdown('</div>', unsafe_allow_html=True)
         else:
-            st.warning("لا يوجد أعضاء مسجلين حالياً.")
-
-    # ------------------------------------------
-    # التبويب الثالث: التقارير والفرز المتقدم (توليد الـ PDF المنفصل)
-    # ------------------------------------------
-    with tab3:
-        st.subheader("📊 لوحة التقارير والفرز المتقدم وتصدير المستندات")
-        if len(st.session_state.members_db) > 0:
-            col_f1, col_f2, col_f3, col_f4 = st.columns(4)
-            with col_f1:
-                sort_option = st.selectbox("🎯 خيار فرز وترتيب القائمة:", ["أبجدي (حسب الاسم)", "حسب كود العائلة", "حسب الجنس", "بدون ترتيب"], key="report_sort_select")
-            with col_f2:
-                filter_family = st.selectbox("🏠 تصفية لعائلة محددة:", ["الكل"] + list(df_current["كود العائلة"].unique()), key="report_filter_fam")
-            with col_f3:
-                filter_gender = st.selectbox("🧬 تصفية للجنس:", ["الكل", "ذكر", "أنثى"], key="report_filter_gender")
-            with col_f4:
-                filter_paid = st.selectbox("💰 دفع الصندوق:", ["الكل", "نعم", "لا"], key="report_filter_paid")
-                
-            # تطبيق الفلترة الديناميكية المحدثة
-            df_filtered = df_current.copy()
