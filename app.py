@@ -99,7 +99,6 @@ else:
 
     # 2. إدارة الأعضاء (تحرير وتعديل البيانات بالكامل + إضافة وحذف)
     with tab2:
-        # واجهة تحرير وتعديل البيانات إذا تم الضغط على زر "تحرير"
         if st.session_state.editing_member_idx is not None:
             st.subheader("📝 تحرير وتعديل بيانات العضو")
             current_member_data = st.session_state.members_db[st.session_state.editing_member_idx]
@@ -107,7 +106,7 @@ else:
             edit_name = st.text_input("تعديل الاسم الكامل:", value=current_member_data["الاسم"], key="mem_edit_name_field")
             edit_code = st.text_input("تعديل كود العائلة:", value=current_member_data["كود العائلة"], key="mem_edit_code_field")
             edit_paid = st.selectbox("تعديل حالة دفع الصندوق (+500 ريال عند اختيار نعم):", ["نعم", "لا"], index=["نعم", "لا"].index(current_member_data["تم دفع الصندوق"]), key="mem_edit_paid_field")
-            edit_gender = st.selectbox("تعديل الجنس:", ["ذكر", "أنثى"], index=["ذكر", "أنثى"].index(current_member_data["الجنس"]), key="mem_edit_gender_field")
+            edit_gender = st.selectbox("تعديل الجنس:", ["Ref_ذكر", "ذكر", "أنثى"], index=1, key="mem_edit_gender_field")
             
             col_save, col_cancel = st.columns(2)
             with col_save:
@@ -129,7 +128,6 @@ else:
                     st.session_state.editing_member_idx = None
                     st.rerun()
         else:
-            # واجهة الإضافة الافتراضية
             st.subheader("➕ إضافة عضو جديد للجماعة")
             n_name = st.text_input("اسم العضو الكامل:", key="mem_add_name_field")
             n_code = st.text_input("كود العائلة الحالي:", key="mem_add_code_field")
@@ -160,3 +158,5 @@ else:
                 st.markdown('</div>', unsafe_allow_html=True)
                 
             with col_del:
+                st.markdown('<div class="delete-btn">', unsafe_allow_html=True)
+                # تم ضبط المحاذاة والمسافات البرمجية الأربعة للأمر هنا بدقة تامة وبدون أي تداخل
