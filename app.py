@@ -47,13 +47,12 @@ total_females = sum(1 for m in st.session_state.members_db if m["الجنس"] ==
 total_paid = sum(1 for m in st.session_state.members_db if m["تم دفع الصندوق"] == "نعم")
 total_not_paid = sum(1 for m in st.session_state.members_db if m["تم دفع الصندوق"] == "لا")
 
-# حساب مبلغ الصندوق الحالي (بافتراض اشتراك الصندوق قيمته 500 ريال لكل من دفع "نعم")
-# يمكنك تغيير الـ 500 ريال لأي قيمة اشتراك أخرى تناسب صندوق الجماعة
+# حساب مبلغ الصندوق الحالي (500 ريال لكل من دفع "نعم")
 fund_subscription_value = 500
 total_fund_amount = total_paid * fund_subscription_value
 
 # ==========================================
-# 📊 الإحصائيات العامة الشاملة في أعلى الموقع (تظهر لجميع الزوار قبل وبعد الدخول)
+# 📊 الإحصائيات العامة الشاملة في أعلى الموقع (تظهر لجميع الزوار)
 # ==========================================
 st.markdown("### 📊 إحصائيات صندوق جماعة معلين العامة")
 
@@ -76,7 +75,6 @@ with col_top6:
     st.metric(label="💰 إجمالي أموال الصندوق الحالية", value=f"{total_fund_amount:,.2f} ريال")
 
 st.markdown("---")
-
 
 # ==========================================
 # 🔐 شـاشـة تـسـجـيـل الـدخـول
@@ -128,7 +126,7 @@ else:
     # تحويل قاعدة البيانات الحالية إلى DataFrame لسهولة العرض والفرز
     df_current = pd.DataFrame(st.session_state.members_db)
 
-    # إنشاء التبويبات الأربعة الثابتة والمستقرة لتفادي انهيار الصفحة وعيوب العرض
+    # إنشاء التبويبات الأربعة الثابتة والمستقرة
     tab1, tab2, tab3, tab4 = st.tabs([
         "💰 1. حساب وتقسيم المبالغ", 
         "👥 2. إدارة وإضافة الأعضاء", 
@@ -200,3 +198,5 @@ else:
         st.markdown("---")
         st.subheader("📋 قائمة التحكم بالأعضاء وحذفهم المباشر")
         if len(st.session_state.members_db) > 0:
+            for idx, member in enumerate(st.session_state.members_db):
+                col_show, col_del_btn = st.columns()
