@@ -1,6 +1,5 @@
 import streamlit as st
 import pandas as pd
-import base64
 
 # 1. إعدادات الصفحة الأساسية لتتناسب مع اللغة العربية
 st.set_page_config(page_title="نظام جماعة معلين الرقمي", page_icon="⚖️", layout="wide")
@@ -39,7 +38,7 @@ if 'members_db' not in st.session_state:
     ]
 
 # ==========================================
-# شـاشـة تـسـجـيـل الـدخـول (تظهر عند عدم تسجيل الدخول)
+# شـاشـة تـسـجـيـل الـدخـول
 # ==========================================
 if not st.session_state.logged_in:
     st.markdown("<br><br>", unsafe_allow_html=True)
@@ -72,7 +71,7 @@ if not st.session_state.logged_in:
 # ==========================================
 else:
     # شريط علوي لعرض اسم المستخدم الحالي وزر تسجيل الخروج
-    col_header, col_logout = st.columns([4, 1])
+    col_header, col_logout = st.columns()
     with col_header:
         st.subheader(f"👋 مرحباً بك: {st.session_state.current_user} ({st.session_state.user_role})")
     with col_logout:
@@ -168,7 +167,7 @@ else:
         st.subheader("📋 قائمة التحكم بالأعضاء وحذفهم المباشر")
         if len(st.session_state.members_db) > 0:
             for idx, member in enumerate(st.session_state.members_db):
-                col_show, col_del_btn = st.columns([5, 1])
+                col_show, col_del_btn = st.columns()
                 with col_show:
                     st.info(f"👤 **{member['الاسم']}** | 🏠 كود العائلة: {member['كود العائلة']} | 💰 دفع الصندوق: {member['تم دفع الصندوق']} | 🧬 الجنس: {member['الجنس']}")
                 with col_del_btn:
@@ -182,7 +181,7 @@ else:
             st.warning("لا يوجد أعضاء مسجلين حالياً.")
 
     # ------------------------------------------
-    # التبويب الثالث: التقارير والفرز المتقدم (توليد الـ PDF المنفصل)
+    # التبويب الثالث: التقارير والفرز المتقدم (إصلاح ترحيل البيانات الفوري)
     # ------------------------------------------
     with all_tabs[2]:
         st.subheader("📊 لوحة التقارير والفرز المتقدم وتصدير المستندات")
@@ -197,4 +196,6 @@ else:
             with col_f4:
                 filter_paid = st.selectbox("💰 دفع الصندوق:", ["الكل", "نعم", "لا"])
                 
+            # تطبيق الفلترة
             df_filtered = df_current.copy()
+            if filter_family != "الكل": df_filtered = df_filtered[df_filtered["كود العائلة"] == filter_family]
