@@ -42,8 +42,7 @@ if 'members_db' not in st.session_state:
 
 # حساب الإحصائيات العامة الديناميكية لإظهارها بالأعلى دائماً
 total_registered_members = len(st.session_state.members_db)
-# افتراضياً: يتم حساب المبالغ المتوفرة بالصندوق بناءً على من قام بالدفع (مثلاً 500 ريال لكل من دفع "نعم")
-# يمكنك تغيير الرقم 500 بأي آلية حسابية أخرى تفضلها لاحقاً
+# افتراضياً: يتم حساب المبالغ المتوفرة بالصندوق بناءً على من قام بالدفع (500 ريال لكل من دفع "نعم")
 total_fund_amount = sum(500 for member in st.session_state.members_db if member["تم دفع الصندوق"] == "نعم")
 
 # ==========================================
@@ -192,3 +191,5 @@ else:
                         st.rerun()
                     st.markdown('</div>', unsafe_allow_html=True)
         else:
+            st.warning("لا يوجد أعضاء مسجلين حالياً.")
+
