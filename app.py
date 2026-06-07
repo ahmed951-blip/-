@@ -148,12 +148,13 @@ else:
         st.markdown("---")
         st.subheader("📋 قائمة التحكم بالأعضاء (تحرير / حذف)")
         for idx, m in enumerate(list(st.session_state.members_db)):
-            col_txt, col_edit, col_del = st.columns([4, 1, 1])
-            col_txt.info(f"👤 {m['الاسم']} | عائلة: {m['كود العائلة']} | صندوق: {m['تم دفع الصندوق']} | جنس: {m['الجنس']}")
+            col_txt, col_edit, col_del = st.columns(3)
+            with col_txt:
+                st.info(f"👤 {m['الاسم']} | عائلة: {m['كود العائلة']} | صندوق: {m['تم دفع الصندوق']} | جنس: {m['الجنس']}")
             
             with col_edit:
                 st.markdown('<div class="edit-btn">', unsafe_allow_html=True)
-                if st.button("📝 تحرير", key=f"edit_member_id_{idx}_{m['الاسم'].replace(' ', '_')}"):
+                if st.button("📝 تحرير", key=f"edit_member_id_{idx}_{m['الاسم'].replace(' ', '_')}", use_container_width=True):
                     st.session_state.editing_member_idx = idx
                     st.rerun()
                 st.markdown('</div>', unsafe_allow_html=True)
