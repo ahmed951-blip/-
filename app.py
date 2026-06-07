@@ -99,7 +99,7 @@ else:
 
     # 2. إدارة الأعضاء (تحرير وتعديل البيانات بالكامل + إضافة وحذف)
     with tab2:
-        # واجهة تحرير وتعديل البيانات إذا تم الضغط على زر "تعديل"
+        # واجهة تحرير وتعديل البيانات إذا تم الضغط على زر "تحرير"
         if st.session_state.editing_member_idx is not None:
             st.subheader("📝 تحرير وتعديل بيانات العضو")
             current_member_data = st.session_state.members_db[st.session_state.editing_member_idx]
