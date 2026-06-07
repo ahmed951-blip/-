@@ -1,6 +1,5 @@
 import streamlit as st
 import pandas as pd
-import base64
 
 # 1. إعدادات الصفحة الأساسية لتتناسب مع اللغة العربية
 st.set_page_config(page_title="نظام جماعة معلين الرقمي", page_icon="⚖️", layout="wide")
@@ -72,7 +71,7 @@ if not st.session_state.logged_in:
 # ==========================================
 else:
     # شريط علوي لعرض اسم المستخدم وزر تسجيل الخروج
-    col_header, col_logout = st.columns([4, 1])
+    col_header, col_logout = st.columns()
     with col_header:
         st.subheader(f"👋 مرحباً بك: {st.session_state.current_user} ({st.session_state.user_role})")
     with col_logout:
@@ -167,7 +166,7 @@ else:
         st.subheader("📋 قائمة التحكم بالأعضاء وحذفهم المباشر")
         if len(st.session_state.members_db) > 0:
             for idx, member in enumerate(st.session_state.members_db):
-                col_show, col_del_btn = st.columns([5, 1])
+                col_show, col_del_btn = st.columns()
                 with col_show:
                     st.info(f"👤 **{member['الاسم']}** | 🏠 كود العائلة: {member['كود العائلة']} | 💰 دفع الصندوق: {member['تم دفع الصندوق']} | 🧬 الجنس: {member['الجنس']}")
                 with col_del_btn:
@@ -181,7 +180,7 @@ else:
             st.warning("لا يوجد أعضاء مسجلين حالياً.")
 
     # ------------------------------------------
-    # التبويب الثالث: التقارير والفرز المتقدم (PDF)
+    # التبويب الثالث: التقارير والفرز المتقدم (تنزيل PDF مباشر)
     # ------------------------------------------
     with tab3:
         st.subheader("📊 لوحة التقارير والفرز وتصدير كشف الأسماء")
