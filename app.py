@@ -71,19 +71,17 @@ if not st.session_state.logged_in:
                 st.session_state.user_role = st.session_state.users_db[username_input]["role"]
                 st.success("تم الدخول بنجاح..")
                 st.rerun()
-            else:
-                st.error("كلمة السر غير صحيحة.")
-        else:
-            st.error("اسم المستخدم غير مسجل.")
+            else: st.error("كلمة السر غير صحيحة.")
+        else: st.error("اسم المستخدم غير مسجل.")
     st.markdown('</div>', unsafe_allow_html=True)
 
 # ==========================================
 # 💻 واجـهـة الـمـوقـع بـعـد الـدخـول
 # ==========================================
 else:
+    # تم ضبط وتحديد رقم 2 لإنشاء عمودين متناسقين تماماً
     col_header, col_logout = st.columns(2)
-    with col_header:
-        st.subheader(f"👋 مرحباً بك: {st.session_state.current_user} ({st.session_state.user_role})")
+    with col_header: st.subheader(f"👋 مرحباً بك: {st.session_state.current_user} ({st.session_state.user_role})")
     with col_logout:
         if st.button("🚪 تسجيل الخروج", key="logout_btn_top"):
             st.session_state.logged_in = False
@@ -98,7 +96,7 @@ else:
     # 📊 لوحة الإحصائيات العامة والمالية للموقع
     total_registered_members = len(st.session_state.members_db)
     total_males = sum(1 for m in st.session_state.members_db if m["الجنس"] == "ذكر")
-    total_females = sum(1 for m in st.session_state.members_db if m["الجنس"] == "أنثى")
+    total_females = sum(1_for_m_in_st.session_state.members_db_if_m["الجنس"] == "أنثى")
     total_paid = sum(1 for m in st.session_state.members_db if m["تم دفع الصندوق"] == "نعم")
     total_not_paid = sum(1 for m in st.session_state.members_db if m["تم دفع الصندوق"] == "لا")
     total_fund_amount = total_paid * 500
@@ -138,7 +136,7 @@ else:
         else: st.error("قائمة الأسماء فارغة.")
 
     # ------------------------------------------
-    # التبويب الثاني: إدارة وإضافة الأعضاء (إصلاح جذري)
+    # التبويب الثاني: إدارة وإضافة الأعضاء (إصلاح الأقواس الحاسم للأعضاء)
     # ------------------------------------------
     with tab2:
         if st.session_state.editing_idx is not None:
