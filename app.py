@@ -40,47 +40,11 @@ if 'members_db' not in st.session_state:
         {"الاسم": "فاطمة المعلي", "كود العائلة": "B2", "تم دفع الصندوق": "نعم", "الجنس": "أنثى"}
     ]
 
-# حساب الإحصائيات العامة الديناميكية المتقدمة لإظهارها بالأعلى دائماً
-total_registered_members = len(st.session_state.members_db)
-total_males = sum(1 for m in st.session_state.members_db if m["الجنس"] == "ذكر")
-total_females = sum(1 for m in st.session_state.members_db if m["الجنس"] == "أنثى")
-total_paid = sum(1 for m in st.session_state.members_db if m["تم دفع الصندوق"] == "نعم")
-total_not_paid = sum(1 for m in st.session_state.members_db if m["تم دفع الصندوق"] == "لا")
-
-# حساب مبلغ الصندوق الحالي (500 ريال لكل من دفع "نعم")
-fund_subscription_value = 500
-total_fund_amount = total_paid * fund_subscription_value
-
 # ==========================================
-# 📊 الإحصائيات العامة الشاملة في أعلى الموقع (تظهر لجميع الزوار)
-# ==========================================
-st.markdown("### 📊 إحصائيات صندوق جماعة معلين العامة")
-
-# الصف الأول من العدادات
-col_top1, col_top2, col_top3 = st.columns(3)
-with col_top1:
-    st.metric(label="👥 إجمالي الأعضاء المسجلين", value=f"{total_registered_members} فرد")
-with col_top2:
-    st.metric(label="👨 عدد الذكور المسجلين", value=f"{total_males} فرد")
-with col_top3:
-    st.metric(label="👩 عدد الإناث المسجلين", value=f"{total_females} فرد")
-
-# الصف الثاني من العدادات
-col_top4, col_top5, col_top6 = st.columns(3)
-with col_top4:
-    st.metric(label="✅ الملتزمين بالدفع في الصندوق", value=f"{total_paid} فرد")
-with col_top5:
-    st.metric(label="❌ غير المسجلين بالدفع (المتأخرين)", value=f"{total_not_paid} فرد")
-with col_top6:
-    st.metric(label="💰 إجمالي أموال الصندوق الحالية", value=f"{total_fund_amount:,.2f} ريال")
-
-st.markdown("---")
-
-# ==========================================
-# 🔐 شـاشـة تـسـجـيـل الـدخـول
+# 🔐 شـاشـة تـسـجـيـل الـدخـول (تظهر أولاً بدون أي إحصائيات)
 # ==========================================
 if not st.session_state.logged_in:
-    st.markdown("<br>", unsafe_allow_html=True)
+    st.markdown("<br><br><br>", unsafe_allow_html=True)
     st.markdown('<div class="login-box">', unsafe_allow_html=True)
     st.subheader("🔐 تسجيل الدخول للوحة التحكم")
     
@@ -110,7 +74,7 @@ if not st.session_state.logged_in:
 # ==========================================
 else:
     # شريط علوي لعرض اسم المستخدم الحالي وزر تسجيل الخروج
-    col_header, col_logout = st.columns()
+    col_header, col_logout = st.columns(2)
     with col_header:
         st.subheader(f"👋 مرحباً بك: {st.session_state.current_user} ({st.session_state.user_role})")
     with col_logout:
@@ -121,6 +85,39 @@ else:
             st.rerun()
             
     st.title("⚖️ النظام الإلكتروني لإدارة وتقسيم المستحقات - جماعة معلين")
+    st.markdown("---")
+
+    # 📊 تم نقل حساب وعرض الإحصائيات إلى هنا (داخل شرط تسجيل الدخول فقط)
+    total_registered_members = len(st.session_state.members_db)
+    total_males = sum(1 for m in st.session_state.members_db if m["الجنس"] == "ذكر")
+    total_females = sum(1 for m in st.session_state.members_db if m["الجنس"] == "أنثى")
+    total_paid = sum(1 for m in st.session_state.members_db if m["تم دفع الصندوق"] == "نعم")
+    total_not_paid = sum(1 for m in st.session_state.members_db if m["تم دفع الصندوق"] == "لا")
+
+    # حساب مبلغ الصندوق الحالي (500 ريال لكل من دفع "نعم")
+    fund_subscription_value = 500
+    total_fund_amount = total_paid * fund_subscription_value
+
+    st.markdown("### 📊 إحصائيات صندوق جماعة معلين العامة")
+    
+    # الصف الأول من العدادات
+    col_top1, col_top2, col_top3 = st.columns(3)
+    with col_top1:
+        st.metric(label="👥 إجمالي الأعضاء المسجلين", value=f"{total_registered_members} فرد")
+    with col_top2:
+        st.metric(label="👨 عدد الذكور المسجلين", value=f"{total_males} فرد")
+    with col_top3:
+        st.metric(label="👩 عدد الإناث المسجلين", value=f"{total_females} فرد")
+
+    # الصف الثاني من العدادات
+    col_top4, col_top5, col_top6 = st.columns(3)
+    with col_top4:
+        st.metric(label="✅ الملتزمين بالدفع في الصندوق", value=f"{total_paid} فرد")
+    with col_top5:
+        st.metric(label="❌ غير المسجلين بالدفع (المتأخرين)", value=f"{total_not_paid} فرد")
+    with col_top6:
+        st.metric(label="💰 إجمالي أموال الصندوق الحالية", value=f"{total_fund_amount:,.2f} ريال")
+
     st.markdown("---")
 
     # تحويل قاعدة البيانات الحالية إلى DataFrame لسهولة العرض والفرز
@@ -199,4 +196,4 @@ else:
         st.subheader("📋 قائمة التحكم بالأعضاء وحذفهم المباشر")
         if len(st.session_state.members_db) > 0:
             for idx, member in enumerate(st.session_state.members_db):
-                col_show, col_del_btn = st.columns()
+                col_show, col_del_btn = st.columns(2)
