@@ -10,6 +10,8 @@ st.markdown("""
     div[data-testid="stNumberInput"] label, div[data-testid="stTextInput"] label, div[data-testid="stSelectbox"] label { text-align: right; direction: rtl; width: 100%; }
     .stButton>button { width: 100%; font-weight: bold; border-radius: 8px; }
     .stat-box { background-color: #f8f9fa; border-right: 5px solid #2e7d32; padding: 15px; border-radius: 5px; text-align: right; margin-bottom: 15px; }
+    .edit-btn>div>button { background-color: #f57c00; color: white; }
+    .delete-btn>div>button { background-color: #d32f2f; color: white; }
     </style>
     """, unsafe_allow_html=True)
 
@@ -27,6 +29,10 @@ if 'members_db' not in st.session_state:
 if 'logged_in' not in st.session_state:
     st.session_state.logged_in = False
 
+# متغير لمتابعة العضو الذي يتم تعديله حالياً
+if 'editing_member_idx' not in st.session_state:
+    st.session_state.editing_member_idx = None
+
 # شاشة تسجيل الدخول
 if not st.session_state.logged_in:
     st.subheader("🔐 تسجيل الدخول - نظام جماعة معلين")
@@ -43,22 +49,23 @@ else:
     # شريط الخروج العلوي
     if st.button("🚪 تسجيل الخروج من النظام", key="logout_top_btn_key"):
         st.session_state.logged_in = False
+        st.session_state.editing_member_idx = None
         st.rerun()
 
     st.title("⚖️ النظام الإلكتروني - جماعة معلين")
     st.markdown("---")
 
-    # حساب الإحصائيات العامة والمالية بدقة
+    # حساب الإحصائيات العامة والمالية بدقة (تحديث فوري لـ 500 ريال عند اختيار نعم)
     df = pd.DataFrame(st.session_state.members_db)
     total = len(df)
     males = sum(1 for m in st.session_state.members_db if m["الجنس"] == "ذكر")
     females = total - males
     paid = sum(1 for m in st.session_state.members_db if m["تم دفع الصندوق"] == "نعم")
     not_paid = total - paid
-    box_money = paid * 500
+    box_money = paid * 500  # إضافة 500 ريال تلقائياً لكل من حالته "نعم"
 
     # عرض لوحة الإحصائيات بوضوح
-    st.markdown("### 📊 إحصائيات الصندوق العامة")
+    st.markdown("### 📊 إحصائيات الصندوق العامة المحدثة")
     c1, c2, c3, c4, c5, c6 = st.columns(6)
     c1.markdown(f'<div class="stat-box"><b>👥 إجمالي الأعضاء</b><br><span style="font-size:20px; color:#2e7d32;">{total}</span></div>', unsafe_allow_html=True)
     c2.markdown(f'<div class="stat-box"><b>👨 عدد الذكور</b><br><span style="font-size:20px; color:#2e7d32;">{males}</span></div>', unsafe_allow_html=True)
@@ -70,7 +77,7 @@ else:
     st.markdown("---")
 
     # إنشاء التبويبات الـ 4
-    tab1, tab2, tab3, tab4 = st.tabs(["💰 1. التقسيم المالي", "👥 2. إدارة الأعضاء", "📊 3. التقارير والفرز", "🔒 4. حسابات المستخدمين"])
+    tab1, tab2, tab3, tab4 = st.tabs(["💰 1. التقسيم المالي", "👥 2. إدارة وتعديل الأعضاء", "📊 3. التقارير والفرز", "🔒 4. حسابات المستخدمين"])
 
     # 1. التقسيم المالي وتوليد التقرير المخصص
     with tab1:
@@ -90,72 +97,65 @@ else:
             html_fin = f"""<html dir="rtl"><head><meta charset="utf-8"></head><body onload="window.print()"><h2>تقرير تقسيم المستحقات المالي - جماعة معلين</h2><p><b>المناسبة:</b> {reason} | <b>المبلغ الإجمالي:</b> {amt:,.2f} ريال</p><table border="1" cellpadding="10" style="border-collapse:collapse; width:100%;"><thead><tr style="background:#b71c1c; color:white;"><th>اسم فرد الجماعة</th><th>كود العائلة</th><th>المبلغ المستحق سداده</th></tr></thead><tbody>{h_rows_fin}</tbody></table></body></html>"""
             st.download_button(f"📥 تحميل تقرير تقسيم ({reason}) كـ PDF", data=html_fin, file_name=f"تقرير_تقسيم_{reason}.html", mime="text/html", key="download_financial_pdf_btn_key")
 
-    # 2. إدارة الأعضاء (الإضافة والحذف الفوري)
+    # 2. إدارة الأعضاء (تحرير وتعديل البيانات بالكامل + إضافة وحذف)
     with tab2:
-        st.subheader("➕ إضافة عضو جديد للجماعة")
-        n_name = st.text_input("اسم العضو الكامل:", key="mem_add_name_field")
-        n_code = st.text_input("كود العائلة الحالي:", key="mem_add_code_field")
-        n_paid = st.selectbox("تم دفع الصندوق؟", ["نعم", "لا"], key="mem_add_paid_field")
-        n_gender = st.selectbox("الجنس الحالي:", ["ذكر", "أنثى"], key="mem_add_gender_field")
-        
-        if st.button("➕ تسجيل العضو في النظام", key="execute_add_member_action_btn"):
-            if n_name.strip() and n_code.strip():
-                if not any(d['الاسم'] == n_name.strip() for d in st.session_state.members_db):
-                    st.session_state.members_db.append({"الاسم": n_name.strip(), "كود العائلة": n_code.strip().upper(), "تم دفع الصندوق": n_paid, "الجنس": n_gender})
-                    st.success("تم تسجيل العضو بنجاح.")
-                    st.rerun()
-                else: st.warning("الاسم مسجل مسبقاً.")
-            else: st.error("يرجى ملء الحقول.")
-
-        st.markdown("---")
-        st.subheader("📋 قائمة الأعضاء الحالية وخيار الحذف")
-        for idx, m in enumerate(list(st.session_state.members_db)):
-            col_txt, col_btn = st.columns([4, 1])
-            col_txt.info(f"👤 {m['الاسم']} | عائلة: {m['كود العائلة']} | صندوق: {m['تم دفع الصندوق']} | جنس: {m['الجنس']}")
-            if col_btn.button("🗑️ حذف العضو", key=f"del_member_id_secure_{idx}_{m['الاسم'].replace(' ', '_')}"):
-                st.session_state.members_db = [item for item in st.session_state.members_db if item["الاسم"] != m["الاسم"]]
-                st.success("تم الحذف بنجاح.")
-                st.rerun()
-
-    # 3. لوحة التقارير والفرز المتقدم (تم إضافة خيار فرز وتصفية الجنس بنجاح)
-    with tab3:
-        st.subheader("📊 الفرز واستخراج الكشوفات والتقارير الشاملة")
-        
-        col_f1, col_f2, col_f3 = st.columns(3)
-        with col_f1:
-            sort_opt = st.selectbox("ترتيب كشف الأسماء حسب:", ["أبجدي", "كود العائلة", "بدون ترتيب"], key="reports_sort_option_select")
-        with col_f2:
-            gender_filter = st.selectbox("تصفية وفلترة حسب الجنس:", ["الكل", "ذكر", "أنثى"], key="reports_gender_filter_select")
-        with col_f3:
-            paid_filter = st.selectbox("تصفية حسب دفع الصندوق:", ["الكل", "نعم", "لا"], key="reports_paid_filter_select")
-        
-        # تطبيق الفلترة والترتيب بناء على الاختيارات الجديدة ديناميكياً
-        df_rep = df.copy()
-        if gender_filter != "الكل":
-            df_rep = df_rep[df_rep["الجنس"] == gender_filter]
-        if paid_filter != "الكل":
-            df_rep = df_rep[df_rep["تم دفع الصندوق"] == paid_filter]
+        # واجهة تحرير وتعديل البيانات إذا تم الضغط على زر "تعديل"
+        if st.session_state.editing_member_idx is not None:
+            st.subheader("📝 تحرير وتعديل بيانات العضو")
+            current_member_data = st.session_state.members_db[st.session_state.editing_member_idx]
             
-        if sort_opt == "أبجدي": 
-            df_rep = df_rep.sort_values(by="الاسم")
-        elif sort_opt == "كود العائلة": 
-            df_rep = df_rep.sort_values(by="كود العائلة")
-        
-        st.dataframe(df_rep, use_container_width=True, hide_index=True)
-        st.markdown("---")
-        
-        cb1, cb2, cb3 = st.columns(3)
-        # Excel
-        csv = df_rep.to_csv(index=False).encode('utf-8-sig')
-        cb1.download_button("📥 تحميل كشف كملف Excel", data=csv, file_name="تقرير_جماعة_معلين.csv", mime="text/csv", key="excel_download_action_key")
-        
-        # Word
-        w_text = f"تقرير كشف أسماء جماعة معلين المفرز\nإجمالي الأفراد في الكشف: {len(df_rep)}\n\n"
-        for _, r in df_rep.iterrows(): w_text += f"- {r['الاسم']} | عائلة: {r['كود العائلة']} | صندوق: {r['تم دفع الصندوق']} | جنس: {r['الجنس']}\n"
-        cb2.download_button("📥 تحميل كشف كمستند Word", data=w_text.encode('utf-8-sig'), file_name="تقرير_جماعة_معلين.doc", mime="application/msword", key="word_download_action_key")
-        
-        # PDF
-        h_rows = "".join([f"<tr><td>{r['الاسم']}</td><td>{r['كود العائلة']}</td><td>{r['تم دفع الصندوق']}</td><td>{r['الجنس']}</td></tr>" for _, r in df_rep.iterrows()])
-        html = f"""<html dir="rtl"><head><meta charset="utf-8"></head><body onload="window.print()"><h2>تقرير كشف أسماء جماعة معلين</h2><table border="1" cellpadding="10" style="border-collapse:collapse; width:100%;"><thead><tr style="background:#2e7d32; color:white;"><th>الاسم</th><th>العائلة</th><th>الصندوق</th><th>الجنس</th></tr></thead><tbody>{h_rows}</tbody></table></body></html>"""
-        cb3.download_button("📥 تحميل للطباعة كـ PDF", data=html, file_name="تقرير_جماعة_معلين_PDF.html", mime="text/html", key="pdf_download_action_key")
+            edit_name = st.text_input("تعديل الاسم الكامل:", value=current_member_data["الاسم"], key="mem_edit_name_field")
+            edit_code = st.text_input("تعديل كود العائلة:", value=current_member_data["كود العائلة"], key="mem_edit_code_field")
+            edit_paid = st.selectbox("تعديل حالة دفع الصندوق (+500 ريال عند اختيار نعم):", ["نعم", "لا"], index=["نعم", "لا"].index(current_member_data["تم دفع الصندوق"]), key="mem_edit_paid_field")
+            edit_gender = st.selectbox("تعديل الجنس:", ["ذكر", "أنثى"], index=["ذكر", "أنثى"].index(current_member_data["الجنس"]), key="mem_edit_gender_field")
+            
+            col_save, col_cancel = st.columns(2)
+            with col_save:
+                if st.button("💾 حفظ التعديلات الجديدة", key="save_edited_member_btn"):
+                    if edit_name.strip() and edit_code.strip():
+                        st.session_state.members_db[st.session_state.editing_member_idx] = {
+                            "الاسم": edit_name.strip(),
+                            "كود العائلة": edit_code.strip().upper(),
+                            "تم دفع الصندوق": edit_paid,
+                            "الجنس": edit_gender
+                        }
+                        st.session_state.editing_member_idx = None
+                        st.success("تم تحرير وتحديث بيانات العضو بنجاح.")
+                        st.rerun()
+                    else:
+                        st.error("يرجى عدم ترك حقول الاسم أو الكود فارغة.")
+            with col_cancel:
+                if st.button("❌ إلغاء التعديل", key="cancel_edited_member_btn"):
+                    st.session_state.editing_member_idx = None
+                    st.rerun()
+        else:
+            # واجهة الإضافة الافتراضية
+            st.subheader("➕ إضافة عضو جديد للجماعة")
+            n_name = st.text_input("اسم العضو الكامل:", key="mem_add_name_field")
+            n_code = st.text_input("كود العائلة الحالي:", key="mem_add_code_field")
+            n_paid = st.selectbox("تم دفع مبلغ الصندوق؟ (سيضيف 500 ريال للصندوق تلقائياً عند اختيار نعم):", ["نعم", "لا"], key="mem_add_paid_field")
+            n_gender = st.selectbox("الجنس الحالي:", ["ذكر", "أنثى"], key="mem_add_gender_field")
+            
+            if st.button("➕ تسجيل العضو في النظام", key="execute_add_member_action_btn"):
+                if n_name.strip() and n_code.strip():
+                    if not any(d['الاسم'] == n_name.strip() for d in st.session_state.members_db):
+                        st.session_state.members_db.append({"الاسم": n_name.strip(), "كود العائلة": n_code.strip().upper(), "تم دفع الصندوق": n_paid, "الجنس": n_gender})
+                        st.success("تم تسجيل العضو بنجاح وتحديث أموال الصندوق.")
+                        st.rerun()
+                    else: st.warning("الاسم مسجل مسبقاً.")
+                else: st.error("يرجى ملء الحقول.")
 
+        st.markdown("---")
+        st.subheader("📋 قائمة التحكم بالأعضاء (تحرير / حذف)")
+        for idx, m in enumerate(list(st.session_state.members_db)):
+            col_txt, col_edit, col_del = st.columns([4, 1, 1])
+            col_txt.info(f"👤 {m['الاسم']} | عائلة: {m['كود العائلة']} | صندوق: {m['تم دفع الصندوق']} | جنس: {m['الجنس']}")
+            
+            with col_edit:
+                st.markdown('<div class="edit-btn">', unsafe_allow_html=True)
+                if st.button("📝 تحرير", key=f"edit_member_id_{idx}_{m['الاسم'].replace(' ', '_')}"):
+                    st.session_state.editing_member_idx = idx
+                    st.rerun()
+                st.markdown('</div>', unsafe_allow_html=True)
+                
+            with col_del:
