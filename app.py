@@ -56,8 +56,7 @@ else:
     st.markdown("---")
 
     # حساب الإحصائيات العامة والمالية بدقة (تحديث فوري لـ 500 ريال عند اختيار نعم)
-    df = pd.DataFrame(st.session_state.members_db)
-    total = len(df)
+    total = len(st.session_state.members_db)
     males = sum(1 for m in st.session_state.members_db if m["الجنس"] == "ذكر")
     females = total - males
     paid = sum(1 for m in st.session_state.members_db if m["تم دفع الصندوق"] == "نعم")
@@ -76,7 +75,7 @@ else:
 
     st.markdown("---")
 
-    # إنشاء التبويبات الـ 4
+    # إنشاء التبويبات الـ 4 الثابتة
     tab1, tab2, tab3, tab4 = st.tabs(["💰 1. التقسيم المالي", "👥 2. إدارة وتعديل الأعضاء", "📊 3. التقارير والفرز", "🔒 4. حسابات المستخدمين"])
 
     # 1. التقسيم المالي وتوليد التقرير المخصص
@@ -88,7 +87,8 @@ else:
         if amt > 0 and total > 0:
             share = amt / total
             st.metric("💰 نصيب الفرد الواحد الحالي", f"{share:,.2f} ريال")
-            df_calc = df.copy()
+            
+            df_calc = pd.DataFrame(st.session_state.members_db)
             df_calc["المبلغ المستحق"] = round(share, 2)
             st.dataframe(df_calc, use_container_width=True, hide_index=True)
             
@@ -106,7 +106,7 @@ else:
             edit_name = st.text_input("تعديل الاسم الكامل:", value=current_member_data["الاسم"], key="mem_edit_name_field")
             edit_code = st.text_input("تعديل كود العائلة:", value=current_member_data["كود العائلة"], key="mem_edit_code_field")
             edit_paid = st.selectbox("تعديل حالة دفع الصندوق (+500 ريال عند اختيار نعم):", ["نعم", "لا"], index=["نعم", "لا"].index(current_member_data["تم دفع الصندوق"]), key="mem_edit_paid_field")
-            edit_gender = st.selectbox("تعديل الجنس:", ["Ref_ذكر", "ذكر", "أنثى"], index=1, key="mem_edit_gender_field")
+            edit_gender = st.selectbox("تعديل الجنس:", ["ذكر", "أنثى"], index=["ذكر", "أنثى"].index(current_member_data["الجنس"]), key="mem_edit_gender_field")
             
             col_save, col_cancel = st.columns(2)
             with col_save:
@@ -146,7 +146,7 @@ else:
         st.markdown("---")
         st.subheader("📋 قائمة التحكم بالأعضاء (تحرير / حذف)")
         for idx, m in enumerate(list(st.session_state.members_db)):
-            col_txt, col_edit, col_del = st.columns(3)
+            col_txt, col_edit, col_del = st.columns([4, 1, 1])
             with col_txt:
                 st.info(f"👤 {m['الاسم']} | عائلة: {m['كود العائلة']} | صندوق: {m['تم دفع الصندوق']} | جنس: {m['الجنس']}")
             
@@ -159,4 +159,3 @@ else:
                 
             with col_del:
                 st.markdown('<div class="delete-btn">', unsafe_allow_html=True)
-                # تم ضبط المحاذاة والمسافات البرمجية الأربعة للأمر هنا بدقة تامة وبدون أي تداخل
