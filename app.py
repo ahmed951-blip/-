@@ -20,7 +20,7 @@ st.markdown("""
     </style>
     """, unsafe_allow_html=True)
 
-# 2. إدارة قاعدة البيانات الافتراضية للمسؤولين والأعضاء
+# 2. تهيئة قاعدة البيانات الأساسية للمسؤولين والأعضاء (Session State)
 if 'users_db' not in st.session_state:
     st.session_state.users_db = {
         "admin": {"password": "123", "role": "مسؤول رئيسي"}
@@ -38,11 +38,8 @@ if 'members_db' not in st.session_state:
         {"الاسم": "فاطمة المعلي", "كود العائلة": "B2", "تم دفع الصندوق": "نعم", "الجنس": "أنثى"}
     ]
 
-# مزامنة البيانات الحالية
-df_current = pd.DataFrame(st.session_state.members_db)
-
 # ==========================================
-# شـاشـة تـسـجـيـل الـدخـول
+# شـاشـة تـسـجـيـل الـدخـول (تظهر عند عدم تسجيل الدخول)
 # ==========================================
 if not st.session_state.logged_in:
     st.markdown("<br><br>", unsafe_allow_html=True)
@@ -62,7 +59,7 @@ if not st.session_state.logged_in:
                 st.session_state.logged_in = True
                 st.session_state.current_user = username_input
                 st.session_state.user_role = st.session_state.users_db[username_input]["role"]
-                st.success("تم تسجيل الدخول بنجاح!")
+                st.success("تم التحقق بنجاح.. جاري الدخول")
                 st.rerun()
             else:
                 st.error("كلمة السر التي أدخلتها غير صحيحة.")
@@ -71,10 +68,11 @@ if not st.session_state.logged_in:
     st.markdown('</div>', unsafe_allow_html=True)
 
 # ==========================================
-# الـنـظـام بـعـد تـسـجـيـل الـدخـول
+# واجـهـة الـمـوقـع الـرئـيـسـيـة بـعـد الـدخـول
 # ==========================================
 else:
-    col_header, col_logout = st.columns()
+    # شريط علوي لعرض اسم المستخدم الحالي وزر تسجيل الخروج
+    col_header, col_logout = st.columns([4, 1])
     with col_header:
         st.subheader(f"👋 مرحباً بك: {st.session_state.current_user} ({st.session_state.user_role})")
     with col_logout:
@@ -87,16 +85,19 @@ else:
     st.title("⚖️ النظام الإلكتروني لإدارة وتقسيم المستحقات - جماعة معلين")
     st.markdown("---")
 
-    # تخصيص التبويبات حسب الصلاحية
+    # تحويل قاعدة البيانات الحالية إلى DataFrame لسهولة العرض والفرز
+    df_current = pd.DataFrame(st.session_state.members_db)
+
+    # إنشاء التبويبات بهيكلية موحدة لتفادي تجميد السيرفر وعرض الأخطاء
     if st.session_state.user_role == "مسؤول رئيسي":
-        tab1, tab2, tab3, tab4 = st.tabs([
+        all_tabs = st.tabs([
             "💰 1. حساب وتقسيم المبالغ", 
             "👥 2. إدارة وإضافة الأعضاء", 
             "📊 3. التقارير والفرز المتقدم (PDF)",
             "🔒 4. إدارة حسابات الدخول (خاص بالآدمن)"
         ])
     else:
-        tab1, tab2, tab3 = st.tabs([
+        all_tabs = st.tabs([
             "💰 1. حساب وتقسيم المبالغ", 
             "👥 2. إدارة وإضافة الأعضاء", 
             "📊 3. التقارير والفرز المتقدم (PDF)"
@@ -105,7 +106,7 @@ else:
     # ------------------------------------------
     # التبويب الأول: الحسابات والتقسيم المالي
     # ------------------------------------------
-    with tab1:
+    with all_tabs[0]:
         st.subheader("💵 إدخال المبالغ وتقسيمها بالتساوي")
         total_members = len(st.session_state.members_db)
         st.info(f"📊 إجمالي عدد أعضاء الجماعة المسجلين: **{total_members} فرد**")
@@ -135,7 +136,7 @@ else:
     # ------------------------------------------
     # التبويب الثاني: إدارة وإضافة الأعضاء
     # ------------------------------------------
-    with tab2:
+    with all_tabs[1]:
         st.subheader("➕ إضافة عضو جديد للجماعة")
         col_in1, col_in2, col_in3, col_in4 = st.columns(4)
         with col_in1:
@@ -167,7 +168,7 @@ else:
         st.subheader("📋 قائمة التحكم بالأعضاء وحذفهم المباشر")
         if len(st.session_state.members_db) > 0:
             for idx, member in enumerate(st.session_state.members_db):
-                col_show, col_del_btn = st.columns()
+                col_show, col_del_btn = st.columns([5, 1])
                 with col_show:
                     st.info(f"👤 **{member['الاسم']}** | 🏠 كود العائلة: {member['كود العائلة']} | 💰 دفع الصندوق: {member['تم دفع الصندوق']} | 🧬 الجنس: {member['الجنس']}")
                 with col_del_btn:
@@ -181,9 +182,9 @@ else:
             st.warning("لا يوجد أعضاء مسجلين حالياً.")
 
     # ------------------------------------------
-    # التبويب الثالث: التقارير والفرز المتقدم (توليد الـ PDF المنفصل والمستقر)
+    # التبويب الثالث: التقارير والفرز المتقدم (توليد الـ PDF المنفصل)
     # ------------------------------------------
-    with tab3:
+    with all_tabs[2]:
         st.subheader("📊 لوحة التقارير والفرز المتقدم وتصدير المستندات")
         if len(st.session_state.members_db) > 0:
             col_f1, col_f2, col_f3, col_f4 = st.columns(4)
@@ -197,5 +198,3 @@ else:
                 filter_paid = st.selectbox("💰 دفع الصندوق:", ["الكل", "نعم", "لا"])
                 
             df_filtered = df_current.copy()
-            if filter_family != "الكل": df_filtered = df_filtered[df_filtered["كود العائلة"] == filter_family]
-            if filter_gender != "الكل": df_filtered = df_filtered[df_filtered["الجنس"] == filter_gender]
