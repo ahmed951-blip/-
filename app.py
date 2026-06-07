@@ -1,5 +1,6 @@
 import streamlit as st
 import pandas as pd
+import random
 
 # 1. إعدادات الواجهة الأساسية واللغة العربية (RTL)
 st.set_page_config(page_title="نظام جماعة معلين الرقمي", page_icon="⚖️", layout="wide")
@@ -38,7 +39,6 @@ if not st.session_state.logged_in:
     u = st.text_input("اسم المستخدم:", key="login_u").strip()
     p = st.text_input("كلمة السر:", type="password", key="login_p").strip()
     if st.button("دخول للنظام", key="btn_login_submit"):
-        # التحقق الآمن من مصفوفة المستخدمين الحية
         user_match = any(user["اسم المستخدم"] == u and user["كلمة السر"] == p for user in st.session_state.users_list)
         if user_match:
             st.session_state.logged_in = True
@@ -55,7 +55,7 @@ else:
     st.title("⚖️ النظام الإلكتروني - جماعة معلين")
     st.markdown("---")
 
-    # 📊 لوحة الإحصائيات العامة والمالية (محرك احتساب الـ 500 ريال التلقائي الفوري)
+    # 📊 لوحة الإحصائيات العامة والمالية
     df_base = pd.DataFrame(st.session_state.members_list)
     
     total = len(df_base) if not df_base.empty else 0
@@ -100,18 +100,17 @@ else:
             st.download_button(f"📥 تحميل مستند تقرير تقسيم ({reason}) كـ PDF مخصص", data=html_fin, file_name=f"تقرير_تقسيم_{reason}.html", mime="text/html", key="dl_fin_pdf", use_container_width=True)
 
     # ------------------------------------------
-    # 2. تبويب التعديل والتحرير والإضافة للأعضاء (بواسطة محررات الخلايا المباشرة الفعالة 100%)
+    # 2. تبويب التعديل والتحرير والإضافة للأعضاء
     # ------------------------------------------
     with tab2:
         st.subheader("👥 لوحة التحكم الفورية بأعضاء جماعة معلين")
         st.markdown("💡 **طريقة العمل الحية والمضمونة:**")
-        st.caption("1. للإضافة: اضغط على زر **(➕ Add row)** الموجود في أسفل الجدول واكتب بيانات العضو الجديد مباشرة بداخل الخلية.")
-        st.caption("2. للتحرير والتعديل: اضغط مرتين على أي خانة (الاسم، العائلة، الصندوق، الجنس) وعدلها فوراً.")
-        st.caption("3. للحذف: حدد السطر المُراد التخلص منه واضغط على زر الحذف في كيبورد جهازك أو علامة السلة.")
+        st.caption("1. للإضافة: اضغط على زر **(➕ Add row)** بأسفل الجدول واكتب بيانات العضو مباشرة داخل الخلية.")
+        st.caption("2. للتحرير: اضغط مرتين على أي خانة (الاسم، العائلة، الصندوق، الجنس) وعدلها فوراً.")
+        st.caption("3. للحذف: حدد السطر المُراد حذفه واضغط على زر الحذف في كيبورد جهازك أو علامة السلة.")
         
         df_members_editor = pd.DataFrame(st.session_state.members_list)
         
-        # محرر الخلايا الذكي لمنع حدوث تجميد أو حظر للجلسة في السيرفرات
         edited_members_df = st.data_editor(
             df_members_editor,
             num_rows="dynamic",
@@ -123,22 +122,24 @@ else:
             }
         )
         
-        # حفظ التغييرات الحية تلقائياً بداخل ذاكرة السيستم دون تعليق
         if not edited_members_df.equals(df_members_editor):
             st.session_state.members_list = edited_members_df.to_dict(orient="records")
             st.success("تم حفظ وتحديث مصفوفة الأعضاء وأموال الصندوق تلقائياً.")
             st.rerun()
 
     # ------------------------------------------
-    # 3. تبويب لوحة التقارير والفرز المتقدم (تصدير كشوفات فرز الجنس و Excel/Word/PDF)
+    # 3. تبويب لوحة التقارير والفرز المتقدم (تلبية المتطلبات الأربعة الجدیدة بدقة)
     # ------------------------------------------
     with tab3:
         st.subheader("📊 الفرز المتقدم واستخراج الكشوفات والتقارير الشاملة")
         
         col_f1, col_f2, col_f3 = st.columns(3)
-        with col_f1: sort_opt = st.selectbox("ترتيب كشف الأسماء والتقرير حسب:", ["بدون ترتيب", "أبجدي", "كود العائلة"], key="sort_sel")
-        with col_f2: gender_filter = st.selectbox("تصفية وفلترة السجلات حسب الجنس:", ["الكل", "ذكر", "أنثى"], key="gender_sel")
-        with col_f3: paid_filter = st.selectbox("تصفية الكشوفات حسب دفع الصندوق:", ["الكل", "نعم", "لا"], key="paid_sel")
-        
-        df_rep = pd.DataFrame(st.session_state.members_list)
-        
+        with col_f1: 
+            # إضافة خيار الترتيب العشوائي بدقة
+            sort_opt = st.selectbox("🎯 نظام ترتيب وفرز الكشف الحالي:", ["بدون ترتيب", "أبجدي (من أ إلى ي)", "حسب كود العائلة", "عشوائي (خلط عشوائي)"], key="sort_sel_tab3")
+        with col_f2: 
+            # فلترة التصفية حسب الجنس المطلوبة
+            gender_filter = st.selectbox("🧬 تصفية مخصصة حسب الجنس:", ["الكل", "ذكر", "أنثى"], key="gender_sel_tab3")
+        with col_f3: 
+            # تصفية إضافية حسب كود العائلة بشكل ديناميكي تلقائي يقرأ الكواد المدخلة
+            unique_families = ["الكل"] + sorted(list(set([str(m.get("كود العائلة", "")).strip() for m in st.session_state.members_list if m.get("كود العائلة")])))
