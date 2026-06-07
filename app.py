@@ -27,7 +27,7 @@ st.markdown("""
         gap: 15px !important;
     }
     div[data-baseweb="tab"] p {
-        font-size: 20px !important; /* تكبير خط التبويبات والأيقونات */
+        font-size: 20px !important; 
         font-weight: bold !important;
     }
     
@@ -54,6 +54,7 @@ st.markdown("""
     /* ضبط محاذاة مربعات الاختيار والقوائم المنزلقة */
     div[data-testid="stMarkdownContainer"] { text-align: right !important; direction: rtl !important; }
     label[data-testid="stWidgetLabel"] { text-align: right !important; direction: rtl !important; font-size: 16px !important; font-weight: bold !important; }
+    .delete-btn>div>button { background-color: #d32f2f; color: white; }
     </style>
     """, unsafe_allow_html=True)
 
@@ -63,8 +64,8 @@ if 'users_list' not in st.session_state:
         {"اسم المستخدم": "admin", "كلمة السر": "123", "الصلاحية": "مسؤول رئيسي"}
     ]
 
-if 'members_list' not in st.session_state:
-    st.session_state.members_list = [
+if 'members_db' not in st.session_state:
+    st.session_state.members_db = [
         {"الاسم": "أحمد المعلي", "كود العائلة": "A1", "تم دفع الصندوق": "نعم", "الجنس": "ذكر"},
         {"الاسم": "محمد المعلي", "كود العائلة": "A1", "تم دفع الصندوق": "لا", "الجنس": "ذكر"},
         {"الاسم": "فاطمة المعلي", "كود العائلة": "B2", "تم دفع الصندوق": "نعم", "الجنس": "أنثى"}
@@ -93,7 +94,7 @@ if not st.session_state.logged_in:
             st.error("بيانات الدخول المدخلة غير صحيحة. يرجى المحاولة مجدداً.")
 else:
     # شريط تسجيل الخروج العلوي المستقر
-    col_logout_space, col_logout_action = st.columns([4, 1])
+    col_logout_space, col_logout_action = st.columns(2)
     with col_logout_action:
         if st.button("🚪 خروج من النظام", key="btn_logout_top"):
             st.session_state.logged_in = False
@@ -103,14 +104,14 @@ else:
     st.markdown("---")
 
     # 📊 لوحة الإحصائيات العامة المحدثة والمحمية (+500 ريال تلقائياً للصندوق عند نعم)
-    total = len(st.session_state.members_list)
-    males = sum(1 for m in st.session_state.members_list if m.get("الجنس") == "ذكر")
+    total = len(st.session_state.members_db)
+    males = sum(1 for m in st.session_state.members_db if m.get("الجنس") == "ذكر")
     females = total - males
-    paid = sum(1 for m in st.session_state.members_list if m.get("تم دفع الصندوق") == "نعم")
+    paid = sum(1 for m in st.session_state.members_db if m.get("تم دفع الصندوق") == "نعم")
     not_paid = total - paid
     box_money = paid * 500  
 
-    st.markdown("### 📊 لوحة الإحصائيات المالية والعامة الحالية الصندوق")
+    st.markdown("### 📊 لوحة الإحصائيات المالية والعامة الحالية للصندوق")
     c1, c2, c3, c4, c5, c6 = st.columns(6)
     c1.markdown(f'<div class="stat-box"><span style="font-size:26px;">👥</span><br><b>إجمالي الأعضاء</b><br><span style="font-size:22px; color:#2e7d32; font-weight:bold;">{total} فرد</span></div>', unsafe_allow_html=True)
     c2.markdown(f'<div class="stat-box"><span style="font-size:26px;">👨</span><br><b>عدد الذكور</b><br><span style="font-size:22px; color:#2e7d32; font-weight:bold;">{males} ذكر</span></div>', unsafe_allow_html=True)
@@ -139,9 +140,9 @@ else:
         
         if amt > 0 and total > 0:
             share = amt / total
-            st.metric("💰 الحصة المقررة السداد الفرد الواحد حالياً", f"{share:,.2f} ريال")
+            st.metric("💰 الحصة المقررة السداد للفرد الواحد حالياً", f"{share:,.2f} ريال")
             
-            df_calc = pd.DataFrame(st.session_state.members_list)
+            df_calc = pd.DataFrame(st.session_state.members_db)
             df_calc["المبلغ المالي المستحق (ريال)"] = round(share, 2)
             st.dataframe(df_calc, use_container_width=True, hide_index=True)
             
@@ -150,15 +151,12 @@ else:
             st.download_button(f"📥 تحميل مستند تقرير تقسيم ({reason}) كـ PDF مخصص للطباعة", data=html_fin, file_name=f"تقرير_تقسيم_{reason}.html", mime="text/html", key="dl_fin_pdf", use_container_width=True)
 
     # ------------------------------------------
-    # التبويب الثاني: إدارة وتعديل الأعضاء الحية والمستقرة 100%
+    # التبويب الثاني: إدارة وتعديل الأعضاء (تمت استعادتها للنظام المباشر الناجح سابقاً)
     # ------------------------------------------
     with tab2:
-        st.subheader("👥 لوحة إضافة وتعديل وتحرير كشوفات الأفراد")
+        st.subheader("👥 لوحة إضافة وتعديل وتحرير كشوفات الأعضاء")
         
-        # 1. استمارة إضافة عضو جديد مستقلة تماماً لمنع حدوث التجميد
-        with st.form("secure_add_member_form_v2"):
-            st.markdown("##### ➕ إضافة عضو جديد للقائمة:")
-            add_n = st.text_input("اسم العضو الكامل:")
-            add_c = st.text_input("كود عائلة العضو:")
-            add_p = st.selectbox("تم سداد رسم دفع الصندوق؟", ["نعم", "لا"])
-            add_g = st.selectbox("الجنس تحديداً:", ["ذكر", "أنثى"])
+        # حقول الإدخال الحرة المباشرة التي كانت ناجحة تماماً وتعمل سابقاً عندك
+        n_name = st.text_input("اسم العضو الثلاثي الكامل الجديد:", key="mem_add_name_field")
+        n_code = st.text_input("كود العائلة الخاص بالعضو الجديد:", key="mem_add_code_field")
+        n_paid = st.selectbox("تم دفع مبلغ الصندوق؟ (سيضيف 500 ريال للصندوق فوراً عند نعم):", ["نعم", "لا"], key="mem_add_paid_field")
