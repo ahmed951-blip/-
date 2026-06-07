@@ -1,9 +1,10 @@
 import streamlit as st
 import pandas as pd
 
-# إعدادات الواجهة الأساسية واللغة العربية
+# 1. إعدادات الصفحة الأساسية لتتناسب مع اللغة العربية
 st.set_page_config(page_title="نظام جماعة معلين الرقمي", page_icon="⚖️", layout="wide")
 
+# تطبيق التنسيق من اليمين إلى اليسار (RTL) وتحسين مظهر الواجهات والأزرار
 st.markdown("""
     <style>
     div[data-testid="stMarkdownContainer"] { text-align: right; direction: rtl; }
@@ -15,7 +16,7 @@ st.markdown("""
     </style>
     """, unsafe_allow_html=True)
 
-# إدارة الجلسة وقاعدة البيانات في المتصفح لمنع التجميد وثبات الحسابات
+# 2. تهيئة قواعد البيانات والمفاتيح في الذاكرة لضمان الاستقرار الشامل
 if 'users_db' not in st.session_state:
     st.session_state.users_db = {"admin": "123"}
 
@@ -29,11 +30,12 @@ if 'members_db' not in st.session_state:
 if 'logged_in' not in st.session_state:
     st.session_state.logged_in = False
 
-# متغير لمتابعة العضو الذي يتم تعديله حالياً
 if 'editing_member_idx' not in st.session_state:
     st.session_state.editing_member_idx = None
 
-# شاشة تسجيل الدخول
+# ==========================================
+# 🔐 شـاشـة تـسـجـيـل الـدخـول
+# ==========================================
 if not st.session_state.logged_in:
     st.subheader("🔐 تسجيل الدخول - نظام جماعة معلين")
     u = st.text_input("اسم المستخدم:", key="login_username_key").strip()
@@ -55,16 +57,14 @@ else:
     st.title("⚖️ النظام الإلكتروني - جماعة معلين")
     st.markdown("---")
 
-    # حساب الإحصائيات العامة والمالية بدقة (تحديث فوري لـ 500 ريال عند اختيار نعم)
-    df = pd.DataFrame(st.session_state.members_db)
-    total = len(df)
+    # 📊 لوحة الإحصائيات العامة والمالية للموقع (حساب مباشر بدون تجميد)
+    total = len(st.session_state.members_db)
     males = sum(1 for m in st.session_state.members_db if m["الجنس"] == "ذكر")
     females = total - males
     paid = sum(1 for m in st.session_state.members_db if m["تم دفع الصندوق"] == "نعم")
     not_paid = total - paid
-    box_money = paid * 500  # إضافة 500 ريال تلقائياً لكل من حالته "نعم"
+    box_money = paid * 500  # حساب الـ 500 ريال تلقائياً فورياً
 
-    # عرض لوحة الإحصائيات بوضوح عبر نظام التقسيم القياسي
     st.markdown("### 📊 إحصائيات الصندوق العامة المحدثة")
     c1, c2, c3, c4, c5, c6 = st.columns(6)
     c1.markdown(f'<div class="stat-box"><b>👥 إجمالي الأعضاء</b><br><span style="font-size:20px; color:#2e7d32;">{total}</span></div>', unsafe_allow_html=True)
@@ -76,10 +76,12 @@ else:
 
     st.markdown("---")
 
-    # إنشاء التبويبات الأربعة المستقرة
-    tab1, tab2, tab3, tab4 = st.tabs(["💰 1. التقسيم المالي", "👥 2. إدارة وتعديل الأعضاء", "📊 3. التقارير والفرز", "🔒 4. حسابات المستخدمين"])
+    # إنشاء التبويبات الأربعة الثابتة القياسية لإنهاء مشكلة الاختفاء والتعليق
+    tab1, tab2, tab3, tab4 = st.tabs(["💰 1. التقسيم المالي", "👥 2. إدارة وتعديل الأعضاء", "📊 3. التقارير والفرز الشامل", "🔒 4. صلاحيات وحسابات المستخدمين"])
 
-    # 1. التقسيم المالي وتوليد التقرير المخصص للمبالغ الجديدة
+    # ------------------------------------------
+    # 1. التقسيم المالي وتوليد التقرير المخصص
+    # ------------------------------------------
     with tab1:
         st.subheader("💵 تقسيم المبالغ بالتساوي وتوليد المستند")
         amt = st.number_input("المبلغ الإجمالي المراد تقسيمه (ريال):", min_value=0.0, value=0.0, key="finance_amount_input_key")
@@ -88,16 +90,17 @@ else:
         if amt > 0 and total > 0:
             share = amt / total
             st.metric("💰 نصيب الفرد الواحد الحالي", f"{share:,.2f} ريال")
-            df_calc = df.copy()
+            df_calc = pd.DataFrame(st.session_state.members_db)
             df_calc["المبلغ المستحق"] = round(share, 2)
             st.dataframe(df_calc, use_container_width=True, hide_index=True)
             
-            # بناء صفحة تقرير التقسيم الفوري الملون
             h_rows_fin = "".join([f"<tr><td>{r['الاسم']}</td><td>{r['كود العائلة']}</td><td>{share:,.2f} ريال</td></tr>" for _, r in df_calc.iterrows()])
             html_fin = f"""<html dir="rtl"><head><meta charset="utf-8"></head><body onload="window.print()"><h2>تقرير تقسيم المستحقات المالي - جماعة معلين</h2><p><b>المناسبة:</b> {reason} | <b>المبلغ الإجمالي:</b> {amt:,.2f} ريال</p><table border="1" cellpadding="10" style="border-collapse:collapse; width:100%;"><thead><tr style="background:#b71c1c; color:white;"><th>اسم فرد الجماعة</th><th>كود العائلة</th><th>المبلغ المستحق سداده</th></tr></thead><tbody>{h_rows_fin}</tbody></table></body></html>"""
-            st.download_button(f"📥 تحميل تقرير تقسيم ({reason}) كـ PDF", data=html_fin, file_name=f"تقرير_تقسيم_{reason}.html", mime="text/html", key="download_financial_pdf_btn_key")
+            st.download_button(f"📥 تحميل تقرير تقسيم ({reason}) كـ PDF", data=html_fin, file_name=f"تقرير_تقسيم_{reason}.html", mime="text/html", key="download_financial_pdf_btn_key", use_container_width=True)
 
-    # 2. إدارة الأعضاء (تحرير وتعديل البيانات بالكامل + إضافة وحذف)
+    # ------------------------------------------
+    # 2. إدارة الأعضاء (تحرير، تعديل البيانات، إضافة، وحذف)
+    # ------------------------------------------
     with tab2:
         if st.session_state.editing_member_idx is not None:
             st.subheader("📝 تحرير وتعديل بيانات العضو")
@@ -110,16 +113,17 @@ else:
             
             col_save, col_cancel = st.columns(2)
             with col_save:
-                if st.button("💾 حفظ Tالتعديلات الجديدة", key="save_edited_member_btn"):
+                if st.button("💾 حفظ التعديلات الجديدة", key="save_edited_member_btn", use_container_width=True):
                     if edit_name.strip() and edit_code.strip():
                         st.session_state.members_db[st.session_state.editing_member_idx] = {
                             "الاسم": edit_name.strip(), "كود العائلة": edit_code.strip().upper(), "تم دفع الصندوق": edit_paid, "الجنس": edit_gender
                         }
                         st.session_state.editing_member_idx = None
-                        st.success("تم التعديل بنجاح.")
+                        st.success("تم تحديث البيانات.")
                         st.rerun()
+                    else: st.error("يرجى ملء الحقول.")
             with col_cancel:
-                if st.button("❌ إلغاء التعديل", key="cancel_edited_member_btn"):
+                if st.button("❌ إلغاء التعديل", key="cancel_edited_member_btn", use_container_width=True):
                     st.session_state.editing_member_idx = None
                     st.rerun()
         else:
@@ -140,18 +144,11 @@ else:
 
         st.markdown("---")
         st.subheader("📋 قائمة التحكم بالأعضاء (تحرير / حذف)")
-        for idx, m in enumerate(list(st.session_state.members_db)):
-            # تم الإصلاح هنا بتحديد الرقم 3 لإنهاء خطأ التبويب الثاني بشكل نهائي
+        current_members_loop = list(st.session_state.members_db)
+        for idx, m in enumerate(current_members_loop):
             col_txt, col_edit, col_del = st.columns(3)
-            with col_txt:
-                st.info(f"👤 {m['الاسم']} | عائلة: {m['كود العائلة']} | صندوق: {m['تم دفع الصندوق']} | جنس: {m['الجنس']}")
-            
+            with col_txt: st.info(f"👤 {m['الاسم']} | عائلة: {m['كود العائلة']} | صندوق: {m['تم دفع الصندوق']} | جنس: {m['الجنس']}")
             with col_edit:
                 st.markdown('<div class="edit-btn">', unsafe_allow_html=True)
                 if st.button("📝 تحرير", key=f"btn_edit_mem_{idx}_{m['الاسم'].replace(' ', '_')}", use_container_width=True):
                     st.session_state.editing_member_idx = idx
-                    st.rerun()
-                st.markdown('</div>', unsafe_allow_html=True)
-                
-            with col_del:
-                st.markdown('<div class="delete-btn">', unsafe_allow_html=True)
