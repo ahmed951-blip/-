@@ -13,12 +13,14 @@ st.markdown("""
     </style>
     """, unsafe_allow_html=True)
 
-# 2. إدارة الجلسة وقاعدة البيانات الآمنة (Session State) لمنع تجميد المتصفح
-if 'users_db' not in st.session_state:
-    st.session_state.users_db = {"admin": "123"}
+# 2. إدارة قاعدة البيانات الثابتة في الذاكرة لمنع تجميد المتصفح
+if 'users_list' not in st.session_state:
+    st.session_state.users_list = [
+        {"اسم المستخدم": "admin", "كلمة السر": "123", "الصلاحية": "مسؤول رئيسي"}
+    ]
 
-if 'members_db' not in st.session_state:
-    st.session_state.members_db = [
+if 'members_list' not in st.session_state:
+    st.session_state.members_list = [
         {"الاسم": "أحمد المعلي", "كود العائلة": "A1", "تم دفع الصندوق": "نعم", "الجنس": "ذكر"},
         {"الاسم": "محمد المعلي", "كود العائلة": "A1", "تم دفع الصندوق": "لا", "الجنس": "ذكر"},
         {"الاسم": "فاطمة المعلي", "كود العائلة": "B2", "تم دفع الصندوق": "نعم", "الجنس": "أنثى"}
@@ -27,11 +29,8 @@ if 'members_db' not in st.session_state:
 if 'logged_in' not in st.session_state:
     st.session_state.logged_in = False
 
-if 'editing_index' not in st.session_state:
-    st.session_state.editing_index = None
-
 # ==========================================
-# 🔐 شـاشـة تـسـجـيـل الـدخـول (لوحة الإحصائيات مخفية بالكامل قبل الدخول)
+# 🔐 شـاشـة تـسـجـيـل الـدخـول
 # ==========================================
 if not st.session_state.logged_in:
     st.markdown("<br><br><br>", unsafe_allow_html=True)
@@ -39,7 +38,9 @@ if not st.session_state.logged_in:
     u = st.text_input("اسم المستخدم:", key="login_u").strip()
     p = st.text_input("كلمة السر:", type="password", key="login_p").strip()
     if st.button("دخول للنظام", key="btn_login_submit"):
-        if u in st.session_state.users_db and st.session_state.users_db[u] == p:
+        # التحقق الآمن من مصفوفة المستخدمين الحية
+        user_match = any(user["اسم المستخدم"] == u and user["كلمة السر"] == p for user in st.session_state.users_list)
+        if user_match:
             st.session_state.logged_in = True
             st.success("تم الدخول بنجاح.")
             st.rerun()
@@ -49,17 +50,18 @@ else:
     # شريط تسجيل الخروج العلوي المستقر
     if st.button("🚪 تسجيل الخروج من النظام", key="btn_logout_top"):
         st.session_state.logged_in = False
-        st.session_state.editing_index = None
         st.rerun()
 
     st.title("⚖️ النظام الإلكتروني - جماعة معلين")
     st.markdown("---")
 
-    # 📊 لوحة الإحصائيات العامة والمالية (محرك الصندوق التلقائي للـ 500 ريال)
-    total = len(st.session_state.members_db)
-    males = sum(1 for m in st.session_state.members_db if m["الجنس"] == "ذكر")
+    # 📊 لوحة الإحصائيات العامة والمالية (محرك احتساب الـ 500 ريال التلقائي الفوري)
+    df_base = pd.DataFrame(st.session_state.members_list)
+    
+    total = len(df_base) if not df_base.empty else 0
+    males = sum(1 for m in st.session_state.members_list if m.get("الجنس") == "ذكر")
     females = total - males
-    paid = sum(1 for m in st.session_state.members_db if m["تم دفع الصندوق"] == "نعم")
+    paid = sum(1 for m in st.session_state.members_list if m.get("تم دفع الصندوق") == "نعم")
     not_paid = total - paid
     box_money = paid * 500  
 
@@ -74,7 +76,7 @@ else:
 
     st.markdown("---")
 
-    # إنشاء التبويبات الأربعة الثابتة والمحمية
+    # إنشاء التبويبات القياسية المحمية وعزل العمليات بالكامل
     tab1, tab2, tab3, tab4 = st.tabs(["💰 1. التقسيم المالي", "👥 2. إدارة وتعديل الأعضاء", "📊 3. التقارير والفرز المتقدم", "🔒 4. صلاحيات وحسابات المستخدمين"])
 
     # ------------------------------------------
@@ -89,7 +91,7 @@ else:
             share = amt / total
             st.metric("💰 نصيب الفرد الواحد من هذا التقسيم", f"{share:,.2f} ريال")
             
-            df_calc = pd.DataFrame(st.session_state.members_db)
+            df_calc = pd.DataFrame(st.session_state.members_list)
             df_calc["المبلغ المستحق سداده (ريال)"] = round(share, 2)
             st.dataframe(df_calc, use_container_width=True, hide_index=True)
             
@@ -98,36 +100,45 @@ else:
             st.download_button(f"📥 تحميل مستند تقرير تقسيم ({reason}) كـ PDF مخصص", data=html_fin, file_name=f"تقرير_تقسيم_{reason}.html", mime="text/html", key="dl_fin_pdf", use_container_width=True)
 
     # ------------------------------------------
-    # 2. تبويب إدارة وتعديل الأعضاء (إضافة مباشرة وتعديل فوري حر ومضمون 100%)
+    # 2. تبويب التعديل والتحرير والإضافة للأعضاء (بواسطة محررات الخلايا المباشرة الفعالة 100%)
     # ------------------------------------------
     with tab2:
-        if st.session_state.editing_index is not None:
-            st.subheader("📝 تحرير وتعديل بيانات العضو")
-            m_edit = st.session_state.members_db[st.session_state.editing_index]
-            
-            e_name = st.text_input("تعديل الاسم الكامل للعضو:", value=m_edit["الاسم"], key="e_name_in")
-            e_code = st.text_input("تعديل كود العائلة المقررة:", value=m_edit["كود العائلة"], key="e_code_in")
-            e_paid = st.selectbox("تعديل حالة دفع الصندوق (+500 ريال عند نعم):", ["نعم", "لا"], index=["نعم", "لا"].index(m_edit["تم دفع الصندوق"]), key="e_paid_in")
-            e_gender = st.selectbox("تعديل نوع الجنس المعتمد:", ["ذكر", "أنثى"], index=["ذكر", "أنثى"].index(m_edit["الجنس"]), key="e_gender_in")
-            
-            if st.button("💾 حفظ التعديلات الجديدة للعضو", key="btn_save_edit"):
-                if e_name.strip() and e_code.strip():
-                    st.session_state.members_db[st.session_state.editing_index] = {"الاسم": e_name.strip(), "كود العائلة": e_code.strip().upper(), "تم دفع الصندوق": e_paid, "الجنس": e_gender}
-                    st.session_state.editing_index = None
-                    st.success("تم تحديث بيانات العضو بنجاح.")
-                    st.rerun()
-                else: st.error("يرجى ملء الحقول.")
-            if st.button("❌ إلغاء عملية التعديل والعودة", key="btn_cancel_edit"):
-                st.session_state.editing_index = None
-                st.rerun()
-        else:
-            st.subheader("➕ إضافة عضو جديد للجماعة")
-            n_name = st.text_input("اسم العضو الثلاثي الكامل الجديد:", key="n_name_in")
-            n_code = st.text_input("كود العائلة الخاص بالعضو الجديد:", key="n_code_in")
-            n_paid = st.selectbox("تم دفع مبلغ الصندوق؟ (سيضيف 500 ريال للصندوق فوراً عند نعم):", ["نعم", "لا"], key="n_paid_in")
-            n_gender = st.selectbox("الجنس المعتمد:", ["ذكر", "أنثى"], key="n_gender_in")
-            
-            if st.button("➕ تسجيل واعتماد العضو في النظام", key="btn_add_member"):
-                if n_name.strip() and n_code.strip():
-                    if not any(d['الاسم'] == n_name.strip() for d in st.session_state.members_db):
-                        st.session_state.members_db.append({"الاسم": n_name.strip(), "كود العائلة": n_code.strip().upper(), "تم دفع الصندوق": n_paid, "الجنس": n_gender})
+        st.subheader("👥 لوحة التحكم الفورية بأعضاء جماعة معلين")
+        st.markdown("💡 **طريقة العمل الحية والمضمونة:**")
+        st.caption("1. للإضافة: اضغط على زر **(➕ Add row)** الموجود في أسفل الجدول واكتب بيانات العضو الجديد مباشرة بداخل الخلية.")
+        st.caption("2. للتحرير والتعديل: اضغط مرتين على أي خانة (الاسم، العائلة، الصندوق، الجنس) وعدلها فوراً.")
+        st.caption("3. للحذف: حدد السطر المُراد التخلص منه واضغط على زر الحذف في كيبورد جهازك أو علامة السلة.")
+        
+        df_members_editor = pd.DataFrame(st.session_state.members_list)
+        
+        # محرر الخلايا الذكي لمنع حدوث تجميد أو حظر للجلسة في السيرفرات
+        edited_members_df = st.data_editor(
+            df_members_editor,
+            num_rows="dynamic",
+            use_container_width=True,
+            key="members_live_data_editor",
+            column_config={
+                "تم دفع الصندوق": st.column_config.SelectboxColumn(options=["نعم", "لا"]),
+                "الجنس": st.column_config.SelectboxColumn(options=["ذكر", "أنثى"])
+            }
+        )
+        
+        # حفظ التغييرات الحية تلقائياً بداخل ذاكرة السيستم دون تعليق
+        if not edited_members_df.equals(df_members_editor):
+            st.session_state.members_list = edited_members_df.to_dict(orient="records")
+            st.success("تم حفظ وتحديث مصفوفة الأعضاء وأموال الصندوق تلقائياً.")
+            st.rerun()
+
+    # ------------------------------------------
+    # 3. تبويب لوحة التقارير والفرز المتقدم (تصدير كشوفات فرز الجنس و Excel/Word/PDF)
+    # ------------------------------------------
+    with tab3:
+        st.subheader("📊 الفرز المتقدم واستخراج الكشوفات والتقارير الشاملة")
+        
+        col_f1, col_f2, col_f3 = st.columns(3)
+        with col_f1: sort_opt = st.selectbox("ترتيب كشف الأسماء والتقرير حسب:", ["بدون ترتيب", "أبجدي", "كود العائلة"], key="sort_sel")
+        with col_f2: gender_filter = st.selectbox("تصفية وفلترة السجلات حسب الجنس:", ["الكل", "ذكر", "أنثى"], key="gender_sel")
+        with col_f3: paid_filter = st.selectbox("تصفية الكشوفات حسب دفع الصندوق:", ["الكل", "نعم", "لا"], key="paid_sel")
+        
+        df_rep = pd.DataFrame(st.session_state.members_list)
+        
