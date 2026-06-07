@@ -80,7 +80,7 @@ else:
     st.title("⚖️ النظام الإلكتروني لإدارة وتقسيم المستحقات - جماعة معلين")
     st.markdown("---")
 
-    # 📊 عرض الإحصائيات العامة المحدثة
+    # 📊 عرض لوحة الإحصائيات العامة والمالية
     st.markdown("### 📊 لوحة الإحصائيات العامة والمالية للموقع")
     c1, c2, c3, c4, c5, c6 = st.columns(6)
     c1.markdown(f'<div class="stat-box"><b>👥 إجمالي الأعضاء</b><br><span style="font-size:22px; color:#2e7d32; font-weight:bold;">{total_members}</span></div>', unsafe_allow_html=True)
@@ -95,7 +95,7 @@ else:
     tab1, tab2, tab3, tab4 = st.tabs(["💰 1. حساب وتقسيم المبالغ الجديد", "👥 2. إدارة وإضافة الأعضاء", "📊 3. استخراج التقارير المتقدمة", "🔒 4. صلاحيات وحسابات المستخدمين"])
 
     # ------------------------------------------
-    # التبويب الأول: تقسيم المبالغ وتوليد تقرير PDF فوري مخصص للتقسيم
+    # التبويب الأول: تقسيم المبالغ الجديد والتقرير الخاص بالتقسيم
     # ------------------------------------------
     with tab1:
         st.subheader("💵 إضافة وتقسيم مبلغ مالي جديد على الجماعة بالتساوي")
@@ -108,8 +108,8 @@ else:
 
             if total_amount > 0:
                 share_per_member = total_amount / total_members
-                
                 st.markdown("### 📊 نتيجة احتساب حصص التوزيع المالي الحالي:")
+                
                 col_s1, col_s2 = st.columns(2)
                 with col_s1: st.metric(label="💰 نصيب الفرد الواحد من هذا المبلغ", value=f"{share_per_member:,.2f} ريال")
                 with col_s2: st.metric(label="👥 إجمالي عدد أفراد الجماعة المستحقين", value=f"{total_members} فرد")
@@ -122,42 +122,24 @@ else:
                 
                 st.markdown("---")
                 st.markdown("### 🖨️ طباعة المستند والتقرير الخاص بهذا التقسيم المالي")
+                st.caption("اضغط على الزر الأحمر بالأسفل، لفتح نافذة طباعة مستند الـ PDF الخاص بهذا التقسيم بالتحديد.")
                 
-                # بناء أسطر HTML المخصصة للتقرير المالي المفرز الحالي
-                pdf_rows_html = "".join([f"<tr><td>{r['الاسم']}</td><td>{r['كود العائلة']}</td><td>{share_per_member:,.2f} ريال</td></tr>" for _, r in df_calc.iterrows()])
+                # تم حل مشكلة الـ f-string السابقة عبر تجزئة بناء القوالب بشكل هندسي بسيط ونظيف
+                pdf_rows_html = ""
+                for _, r in df_calc.iterrows():
+                    pdf_rows_html += f"<tr><td>{r['الاسم']}</td><td>{r['كود العائلة']}</td><td>{share_per_member:,.2f} ريال</td></tr>"
                 
-                financial_pdf_report = f"""
-                <html dir="rtl" lang="ar">
-                <head>
-                    <meta charset="utf-8">
-                    <style>
-                        body {{ font-family: 'Arial', sans-serif; padding: 40px; text-align: right; background-color: #ffffff; }}
-                        .header-title {{ color: #b71c1c; text-align: center; border-bottom: 3px solid #b71c1c; padding-bottom: 12px; font-size: 24px; }}
-                        .summary-box {{ background-color: #f8f9fa; border-right: 6px solid #b71c1c; padding: 15px; margin: 20px 0; font-size: 16px; line-height: 1.8; }}
-                        table {{ width:100%; border-collapse:collapse; margin-top: 25px; }}
-                        th, td {{ border:1px solid #dddddd; padding:12px; font-size:15px; text-align: right; }}
-                        th {{ background-color: #b71c1c; color: white; font-weight: bold; }}
-                        tr:nth-child(even) {{ background-color: #f2f2f2; }}
-                        .print-button {{ display:block; width:100%; padding:15px; background-color:#1976d2; color:white; font-size:18px; font-weight:bold; text-align:center; border:none; border-radius:8px; cursor:pointer; margin-bottom:25px; }}
-                        @media print {{ .print-button {{ display:none; }} }}
-                    </style>
-                </head>
-                <body>
-                    <button class="print-button" onclick="window.print()">🖨️ اضغط هنا الآن لحفظ هذا التقرير المالي كملف PDF</button>
-                    <h2 class="header-title">تقرير مالي رسمي خاص بتقسيم المستحقات - جماعة معلين</h2>
-                    
-                    <div class="summary-box">
-                        <b>📌 موضوع ومناسبة التقسيم:</b> {reason}<br>
-                        <b>💰 إجمالي المبلغ المالي المطلوب تقسيمه:</b> {total_amount:,.2f} ريال سعودي<br>
-                        <b>👥 إجمالي عدد الأفراد المسجلين والمستحقين للسداد:</b> {total_members} فرد<br>
-                        <b>💵 المطالبة المالية المقررة الفرد الواحد:</b> {share_per_member:,.2f} ريال سعودي بالتساوي<br>
-                    </div>
-
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>اسم فرد الجماعة</th>
-                                <th>كود عائلة العضو</th>
-                                <th>المبلغ المالي المستحق سداده</th>
-                            </tr>
-                        </thead>
+                # تجميع تقرير ملف الطباعة النهائي
+                financial_pdf_report = '<html dir="rtl" lang="ar"><head><meta charset="utf-8"><style>'
+                financial_pdf_report += "body { font-family: 'Arial', sans-serif; padding: 40px; text-align: right; background-color: #ffffff; } "
+                financial_pdf_report += ".header-title { color: #b71c1c; text-align: center; border-bottom: 3px solid #b71c1c; padding-bottom: 12px; font-size: 24px; } "
+                financial_pdf_report += f".summary-box {{ background-color: #f8f9fa; border-right: 6px solid #b71c1c; padding: 15px; margin: 20px 0; font-size: 16px; line-height: 1.8; }} "
+                financial_pdf_report += "table { width:100%; border-collapse:collapse; margin-top: 25px; } "
+                financial_pdf_report += "th, td { border:1px solid #dddddd; padding:12px; font-size:15px; text-align: right; } "
+                financial_pdf_report += "th { background-color: #b71c1c; color: white; font-weight: bold; } "
+                financial_pdf_report += "tr:nth-child(even) { background-color: #f2f2f2; } "
+                financial_pdf_report += ".print-button { display:block; width:100%; padding:15px; background-color:#1976d2; color:white; font-size:18px; font-weight:bold; text-align:center; border:none; border-radius:8px; cursor:pointer; margin-bottom:25px; } "
+                financial_pdf_report += "@media print { .print-button { display:none; } } "
+                financial_pdf_report += f'</style></head><body><button class="print-button" onclick="window.print()">🖨️ اضغط هنا الآن لحفظ هذا التقرير المالي كملف PDF</button>'
+                financial_pdf_report += f'<h2 class="header-title">تقرير مالي رسمي خاص بتقسيم المستحقات - جماعة معلين</h2>'
+                financial_pdf_report += f'<div class="summary-box"><b>📌 موضوع ومناسبة التقسيم:</b> {reason}<br><b>💰 إجمالي المبلغ المالي المطلوب تقسيمه:</b> {total_amount:,.2f} ريال سعودي<br><b>👥 إجمالي عدد الأفراد المسجلين والمستحقين للسداد:</b> {total_members} فرد<br><b>💵 المطالبة المالية المقررة الفرد الواحد:</b> {share_per_member:,.2f} ريال سعودي بالتساوي<br></div>'
