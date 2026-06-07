@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 import random
 
-# 1. إعدادات الصفحة الأساسية لتتناسب مع اللغة العربية
+# 1. إعدادات الواجهة الأساسية واللغة العربية (RTL)
 st.set_page_config(page_title="نظام جماعة معلين الرقمي", page_icon="⚖️", layout="wide")
 
 # تطبيق التنسيق من اليمين إلى اليسار (RTL)، محاذاة شاملة، وتكبير حجم الأيقونات والأزرار
@@ -58,11 +58,9 @@ st.markdown("""
     </style>
     """, unsafe_allow_html=True)
 
-# 2. تهيئة قواعد البيانات والمفاتيح الدائمة في الذاكرة لمنع تجميد النظام كلياً
-if 'users_list' not in st.session_state:
-    st.session_state.users_list = [
-        {"اسم المستخدم": "admin", "كلمة السر": "123", "الصلاحية": "مسؤول رئيسي"}
-    ]
+# 2. تهيئة قواعد البيانات والمفاتيح الدائمة لمنع تجميد الجلسة
+if 'users_db' not in st.session_state:
+    st.session_state.users_db = {"admin": "123"}
 
 if 'members_db' not in st.session_state:
     st.session_state.members_db = [
@@ -85,15 +83,14 @@ if not st.session_state.logged_in:
     p = st.text_input("كلمة السر الحالية:", type="password", key="login_p").strip()
     
     if st.button("🔓 تسجيل الدخول الآمن للموقع", key="btn_login_submit"):
-        user_match = any(user["اسم المستخدم"] == u and user["كلمة السر"] == p for user in st.session_state.users_list)
-        if user_match:
+        if u in st.session_state.users_db and st.session_state.users_db[u] == p:
             st.session_state.logged_in = True
             st.success("تم التحقق بنجاح.. جاري الدخول للوحة المستحقات.")
             st.rerun()
         else:
             st.error("بيانات الدخول المدخلة غير صحيحة. يرجى المحاولة مجدداً.")
 else:
-    # شريط تسجيل الخروج العلوي المستقر
+    # شريط تسجيل الخروج العلوي المستقر والمعادل برقم عمود صريح لمنع عطل المتصفح
     col_logout_space, col_logout_action = st.columns(2)
     with col_logout_action:
         if st.button("🚪 خروج من النظام", key="btn_logout_top"):
@@ -151,12 +148,14 @@ else:
             st.download_button(f"📥 تحميل مستند تقرير تقسيم ({reason}) كـ PDF مخصص للطباعة", data=html_fin, file_name=f"تقرير_تقسيم_{reason}.html", mime="text/html", key="dl_fin_pdf", use_container_width=True)
 
     # ------------------------------------------
-    # التبويب الثاني: إدارة وتعديل الأعضاء (تمت استعادتها للنظام المباشر الناجح سابقاً)
+    # التبويب الثاني: إدارة وتعديل الأعضاء المستقرة تماماً وبدون استمارات معلقة
     # ------------------------------------------
     with tab2:
-        st.subheader("👥 لوحة إضافة وتعديل وتحرير كشوفات الأعضاء")
+        st.subheader("👥 لوحة إضافة وحذف كشوفات الأعضاء")
         
-        # حقول الإدخال الحرة المباشرة التي كانت ناجحة تماماً وتعمل سابقاً عندك
+        # حقول الإدخال الحرة المستقرة والمأخوذة من الكود الناجح تماماً
         n_name = st.text_input("اسم العضو الثلاثي الكامل الجديد:", key="mem_add_name_field")
         n_code = st.text_input("كود العائلة الخاص بالعضو الجديد:", key="mem_add_code_field")
         n_paid = st.selectbox("تم دفع مبلغ الصندوق؟ (سيضيف 500 ريال للصندوق فوراً عند نعم):", ["نعم", "لا"], key="mem_add_paid_field")
+        n_gender = st.selectbox("الجنس المعتمد للعضو:", ["ذكر", "أنثى"], key="mem_add_gender_field")
+        
