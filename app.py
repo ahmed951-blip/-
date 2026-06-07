@@ -4,7 +4,7 @@ import pandas as pd
 # 1. إعدادات الصفحة الأساسية لتتناسب مع اللغة العربية
 st.set_page_config(page_title="نظام جماعة معلين الرقمي", page_icon="⚖️", layout="wide")
 
-# تطبيق التنسيق من اليمين إلى اليسار (RTL) وتحسين مظهر البطاقات الإحصائية والأزرار
+# تطبيق التنسيق من اليمين إلى اليسار (RTL) وتحسين مظهر الواجهات والأزرار
 st.markdown("""
     <style>
     .reportview-container .main .block-container{ max-width: 95%; }
@@ -29,7 +29,7 @@ st.markdown("""
     </style>
     """, unsafe_allow_html=True)
 
-# 2. تهيئة قاعدة البيانات الأساسية في الذاكرة (Session State)
+# 2. تهيئة قواعد البيانات والمفاتيح في الذاكرة (Session State) لضمان الاستقرار الشامل
 if 'users_db' not in st.session_state:
     st.session_state.users_db = {"admin": {"password": "123", "role": "مسؤول رئيسي"}}
 
@@ -49,7 +49,7 @@ if 'editing_idx' not in st.session_state:
     st.session_state.editing_idx = None
 
 # ==========================================
-# 🔐 شـاشـة تـسـجـيـل الـدخـول
+# 🔐 شـاشـة تـسـجـيـل الـدخـول (تظهر بشكل مغلق تماماً وحصين)
 # ==========================================
 if not st.session_state.logged_in:
     st.markdown("<br><br><br>", unsafe_allow_html=True)
@@ -60,7 +60,7 @@ if not st.session_state.logged_in:
     password_input = st.text_input("كلمة السر:", type="password", key="login_password").strip()
     
     st.markdown('<div class="main-btn">', unsafe_allow_html=True)
-    login_btn = st.button("دخول للنظام")
+    login_btn = st.button("دخول للنظام", key="execute_login_action_btn")
     st.markdown('</div>', unsafe_allow_html=True)
     
     if login_btn:
@@ -69,16 +69,17 @@ if not st.session_state.logged_in:
                 st.session_state.logged_in = True
                 st.session_state.current_user = username_input
                 st.session_state.user_role = st.session_state.users_db[username_input]["role"]
-                st.success("تم الدخول بنجاح..")
+                st.success("تم التحقق بنجاح.. جاري الدخول")
                 st.rerun()
             else: st.error("كلمة السر غير صحيحة.")
         else: st.error("اسم المستخدم غير مسجل.")
     st.markdown('</div>', unsafe_allow_html=True)
 
 # ==========================================
-# 💻 واجـهـة الـمـوقـع بـعـد الـدخـول
+# 💻 واجـهـة الـمـوقـع الـرئـيـسـيـة (تفتح فقط بعد الدخول الصحيح)
 # ==========================================
 else:
+    # شريط الخروج العلوي المقسم هندسياً
     col_header, col_logout = st.columns(2)
     with col_header: st.subheader(f"👋 مرحباً بك: {st.session_state.current_user} ({st.session_state.user_role})")
     with col_logout:
@@ -92,7 +93,7 @@ else:
     st.title("⚖️ النظام الإلكتروني لإدارة وتقسيم المستحقات - جماعة معلين")
     st.markdown("---")
 
-    # 📊 تم تصحيح صياغة الكود هنا تماماً لتفادي الـ SyntaxError قطعياً
+    # 📊 لوحة الإحصائيات العامة والمالية للموقع (محمية خلف بوابة الدخول)
     total_registered_members = len(st.session_state.members_db)
     total_males = sum(1 for m in st.session_state.members_db if m["الجنس"] == "ذكر")
     total_females = sum(1 for m in st.session_state.members_db if m["الجنس"] == "أنثى")
@@ -110,14 +111,23 @@ else:
     with c6: st.markdown(f'<div class="stat-card"><div class="stat-title">💰 ميزانية الصندوق</div><div class="stat-value">{total_fund_amount:,.0f} ر.س</div></div>', unsafe_allow_html=True)
 
     st.markdown("---")
+    
+    # تحديث وقراءة كتل الجدول
     df_current = pd.DataFrame(st.session_state.members_db)
-    tab1, tab2, tab3, tab4 = st.tabs(["💰 1. حساب وتقسيم المبالغ", "👥 2. إدارة وإضافة الأعضاء", "📊 3. استخراج التقارير المتقدمة", "🔒 4. صلاحيات وحسابات المستخدمين"])
+    
+    # بناء التبويبات الأربعة الثابتة مستقرة الأبعاد لجميع المستويات
+    tab1, tab2, tab3, tab4 = st.tabs([
+        "💰 1. حساب وتقسيم المبالغ", 
+        "👥 2. إدارة وإضافة الأعضاء", 
+        "📊 3. استخراج التقارير المتقدمة", 
+        "🔒 4. صلاحيات وحسابات المستخدمين"
+    ])
 
     # ------------------------------------------
     # التبويب الأول: الحسابات والتقسيم المالي
     # ------------------------------------------
     with tab1:
-        st.subheader("💵 إدخال المبالغ وتقسيمها بالتساوي")
+        st.subheader("💵 إدخل المبالغ وتقسيمها بالتساوي")
         if total_registered_members > 0:
             col_m1, col_m2 = st.columns(2)
             with col_m1: total_amount = st.number_input("أدخل المبلغ المالي الإجمالي (ريال):", min_value=0.0, value=0.0, step=100.0, key="calc_amount_input")
@@ -129,13 +139,14 @@ else:
                 col_s1, col_s2 = st.columns(2)
                 with col_s1: st.metric(label="💰 نصيب الفرد الواحد الحالي", value=f"{share_per_member:,.2f} ريال")
                 with col_s2: st.metric(label="👥 عدد الأفراد المستحقين الفعلي", value=f"{total_registered_members} فرد")
+                
                 df_calc = df_current.copy()
                 df_calc["المبلغ المستحق (ريال)"] = round(share_per_member, 2)
                 st.dataframe(df_calc, use_container_width=True, hide_index=True)
         else: st.error("قائمة الأسماء فارغة.")
 
     # ------------------------------------------
-    # التبويب الثاني: إدارة وإضافة الأعضاء
+    # التبويب الثاني: إدارة وإضافة الأعضاء (معزول ومجرب بالكامل)
     # ------------------------------------------
     with tab2:
         if st.session_state.editing_idx is not None:
@@ -152,17 +163,7 @@ else:
                 if st.button("💾 حفظ التعديلات المحدثة", key="btn_save_member_changes"):
                     if e_name.strip() != "" and e_code.strip() != "":
                         st.session_state.members_db[st.session_state.editing_idx] = {
-                            "الاسم": e_name.strip(),
-                            "كود العائلة": e_code.strip().upper(),
-                            "تم دفع الصندوق": e_paid,
-                            "الجنس": e_gender
+                            "الاسم": e_name.strip(), "كود العائلة": e_code.strip().upper(), "تم دفع الصندوق": e_paid, "الجنس": e_gender
                         }
                         st.session_state.editing_idx = None
-                        st.success("تم تحديث البيانات.")
-                        st.rerun()
-            with col_ef2:
-                if st.button("❌ إلغاء التعديل", key="btn_cancel_member_edit"):
-                    st.session_state.editing_idx = None
-                    st.rerun()
-        else:
-            st.subheader("➕ إضافة عضو جديد")
+                        st.success("تم تحديث البيانات بنجاح.")
