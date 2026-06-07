@@ -13,7 +13,7 @@ st.markdown("""
     </style>
     """, unsafe_allow_html=True)
 
-# إدارة الجلسة وقاعدة البيانات في المتصفح لمنع التجميد
+# إدارة الجلسة وقاعدة البيانات في المتصفح لمنع التجميد وثبات الحسابات
 if 'users_db' not in st.session_state:
     st.session_state.users_db = {"admin": "123"}
 
@@ -112,19 +112,34 @@ else:
         for idx, m in enumerate(list(st.session_state.members_db)):
             col_txt, col_btn = st.columns([4, 1])
             col_txt.info(f"👤 {m['الاسم']} | عائلة: {m['كود العائلة']} | صندوق: {m['تم دفع الصندوق']} | جنس: {m['الجنس']}")
-            if col_btn.button("🗑️ حذف العضو", key=f"del_member_id_secure_{idx}"):
+            if col_btn.button("🗑️ حذف العضو", key=f"del_member_id_secure_{idx}_{m['الاسم'].replace(' ', '_')}"):
                 st.session_state.members_db = [item for item in st.session_state.members_db if item["الاسم"] != m["الاسم"]]
                 st.success("تم الحذف بنجاح.")
                 st.rerun()
 
-    # 3. لوحة التقارير والفرز الثلاثي (Excel/Word/PDF)
+    # 3. لوحة التقارير والفرز المتقدم (تم إضافة خيار فرز وتصفية الجنس بنجاح)
     with tab3:
         st.subheader("📊 الفرز واستخراج الكشوفات والتقارير الشاملة")
-        sort_opt = st.selectbox("ترتيب كشف الأسماء حسب:", ["أبجدي", "كود العائلة", "بدون ترتيب"], key="reports_sort_option_select")
         
+        col_f1, col_f2, col_f3 = st.columns(3)
+        with col_f1:
+            sort_opt = st.selectbox("ترتيب كشف الأسماء حسب:", ["أبجدي", "كود العائلة", "بدون ترتيب"], key="reports_sort_option_select")
+        with col_f2:
+            gender_filter = st.selectbox("تصفية وفلترة حسب الجنس:", ["الكل", "ذكر", "أنثى"], key="reports_gender_filter_select")
+        with col_f3:
+            paid_filter = st.selectbox("تصفية حسب دفع الصندوق:", ["الكل", "نعم", "لا"], key="reports_paid_filter_select")
+        
+        # تطبيق الفلترة والترتيب بناء على الاختيارات الجديدة ديناميكياً
         df_rep = df.copy()
-        if sort_opt == "أبجدي": df_rep = df_rep.sort_values(by="الاسم")
-        elif sort_opt == "كود العائلة": df_rep = df_rep.sort_values(by="كود العائلة")
+        if gender_filter != "الكل":
+            df_rep = df_rep[df_rep["الجنس"] == gender_filter]
+        if paid_filter != "الكل":
+            df_rep = df_rep[df_rep["تم دفع الصندوق"] == paid_filter]
+            
+        if sort_opt == "أبجدي": 
+            df_rep = df_rep.sort_values(by="الاسم")
+        elif sort_opt == "كود العائلة": 
+            df_rep = df_rep.sort_values(by="كود العائلة")
         
         st.dataframe(df_rep, use_container_width=True, hide_index=True)
         st.markdown("---")
@@ -135,7 +150,7 @@ else:
         cb1.download_button("📥 تحميل كشف كملف Excel", data=csv, file_name="تقرير_جماعة_معلين.csv", mime="text/csv", key="excel_download_action_key")
         
         # Word
-        w_text = f"تقرير جماعة معلين المفرز\nإجمالي الأعضاء: {total}\n\n"
+        w_text = f"تقرير كشف أسماء جماعة معلين المفرز\nإجمالي الأفراد في الكشف: {len(df_rep)}\n\n"
         for _, r in df_rep.iterrows(): w_text += f"- {r['الاسم']} | عائلة: {r['كود العائلة']} | صندوق: {r['تم دفع الصندوق']} | جنس: {r['الجنس']}\n"
         cb2.download_button("📥 تحميل كشف كمستند Word", data=w_text.encode('utf-8-sig'), file_name="تقرير_جماعة_معلين.doc", mime="application/msword", key="word_download_action_key")
         
@@ -144,20 +159,3 @@ else:
         html = f"""<html dir="rtl"><head><meta charset="utf-8"></head><body onload="window.print()"><h2>تقرير كشف أسماء جماعة معلين</h2><table border="1" cellpadding="10" style="border-collapse:collapse; width:100%;"><thead><tr style="background:#2e7d32; color:white;"><th>الاسم</th><th>العائلة</th><th>الصندوق</th><th>الجنس</th></tr></thead><tbody>{h_rows}</tbody></table></body></html>"""
         cb3.download_button("📥 تحميل للطباعة كـ PDF", data=html, file_name="تقرير_جماعة_معلين_PDF.html", mime="text/html", key="pdf_download_action_key")
 
-    # 4. حسابات المستخدمين (إضافة وحذف المسؤولين)
-    with tab4:
-        st.subheader("🔒 إضافة حساب مستخدم جديد وصلاحية للدخول")
-        new_u = st.text_input("اسم المستخدم الجديد بالسيستم:", key="user_add_name_field")
-        new_p = st.text_input("تعيين كلمة السر الخاصة به:", key="user_add_pass_field")
-        
-        if st.button("🔐 اعتماد الحساب الجديد", key="execute_add_user_action_btn"):
-            if new_u.strip() and new_p.strip():
-                st.session_state.users_db[new_u.strip()] = new_p.strip()
-                st.success("تم إنشاء واعتماد الحساب الجديد!")
-                st.rerun()
-            else: st.error("يرجى إدخال البيانات كاملة.")
-            
-        st.markdown("---")
-        st.subheader("📋 الحسابات والتراخيص النشطة حالياً بالسيستم:")
-        for usr, psw in list(st.session_state.users_db.items()):
-            cu1, cu2 = st.columns([4, 1])
