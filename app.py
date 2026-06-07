@@ -17,34 +17,43 @@ st.markdown("""
     .stTabs [data-baseweb="tab-list"] { direction: rtl; justify-content: flex-start; }
     .stTabs [data-baseweb="tab"] { font-size: 16px; font-weight: bold; }
     
-    /* تصميم خاص بطباعة التقرير المستهدف وعزل الأزرار غير المرغوبة عند الطباعة */
+    /* هندسة كود الطباعة: إخفاء عناصر التحكم كلياً عند بدء توليد ملف الـ PDF */
     @media print {
-        header, [data-testid="stSidebar"], .stButton, div[data-testid="stStaticWidget"], div[data-testid="stSelectbox"] {
+        header, [data-testid="stSidebar"], .stButton, div[data-testid="stStaticWidget"], 
+        div[data-testid="stSelectbox"], .stTabs, div[data-testid="stAlert"] {
             display: none !important;
         }
-        .printable-report {
+        [data-testid="stAppViewContainer"] {
+            background-color: white !important;
+        }
+        .print-only-report {
+            display: block !important;
             direction: rtl !important;
             text-align: right !important;
             font-family: 'Arial', sans-serif !important;
+            padding: 20px !important;
         }
         table {
             width: 100% !important;
             border-collapse: collapse !important;
+            margin-top: 20px !important;
         }
         th, td {
-            border: 1px solid #ccc !important;
-            padding: 10px !important;
+            border: 1px solid #000000 !important;
+            padding: 12px !important;
             text-align: right !important;
+            color: #000000 !important;
+            font-size: 14px !important;
         }
         th {
-            background-color: #2e7d32 !important;
-            color: white !important;
+            background-color: #f2f2f2 !important;
+            font-weight: bold !important;
         }
     }
     </style>
     """, unsafe_allow_html=True)
 
-# 2. إدارة قاعدة البيانات الافتراضية للمستخدمين وأعضاء الجماعة
+# 2. إدارة قاعدة البيانات الافتراضية للمسؤولين والأعضاء
 if 'users_db' not in st.session_state:
     st.session_state.users_db = {
         "admin": {"password": "123", "role": "مسؤول رئيسي"}
@@ -61,6 +70,9 @@ if 'members_db' not in st.session_state:
         {"الاسم": "محمد المعلي", "كود العائلة": "A1", "تم دفع الصندوق": "لا", "الجنس": "ذكر"},
         {"الاسم": "فاطمة المعلي", "كود العائلة": "B2", "تم دفع الصندوق": "نعم", "الجنس": "أنثى"}
     ]
+
+# مزامنة البيانات الحالية في DataFrame
+df_current = pd.DataFrame(st.session_state.members_db)
 
 # ==========================================
 # شـاشـة تـسـجـيـل الـدخـول
@@ -95,7 +107,6 @@ if not st.session_state.logged_in:
 # الـنـظـام بـعـد تـسـجـيـل الـدخـول
 # ==========================================
 else:
-    # شريط علوي لعرض اسم المستخدم وزر تسجيل الخروج
     col_header, col_logout = st.columns()
     with col_header:
         st.subheader(f"👋 مرحباً بك: {st.session_state.current_user} ({st.session_state.user_role})")
@@ -109,9 +120,7 @@ else:
     st.title("⚖️ النظام الإلكتروني لإدارة وتقسيم المستحقات - جماعة معلين")
     st.markdown("---")
 
-    df_current = pd.DataFrame(st.session_state.members_db)
-
-    # إنشاء وتخصيص التبويبات بشكل صحيح هندسياً
+    # تخصيص التبويبات حسب الصلاحية
     if st.session_state.user_role == "مسؤول رئيسي":
         tab1, tab2, tab3, tab4 = st.tabs([
             "💰 1. حساب وتقسيم المبالغ", 
@@ -205,10 +214,3 @@ else:
             st.warning("لا يوجد أعضاء مسجلين حالياً.")
 
     # ------------------------------------------
-    # التبويب الثالث: التقارير والفرز المتقدم (توليد الطباعة المستقرة لـ PDF)
-    # ------------------------------------------
-    with tab3:
-        st.subheader("📊 لوحة التقارير والفرز المتقدم وتصدير المستندات")
-        if len(st.session_state.members_db) > 0:
-            col_f1, col_f2, col_f3, col_f4 = st.columns(4)
-            with col_f1:
