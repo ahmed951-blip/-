@@ -1,10 +1,9 @@
 import streamlit as st
 import pandas as pd
 
-# 1. إعدادات الصفحة الأساسية لتتناسب مع اللغة العربية
+# إعدادات الواجهة الأساسية واللغة العربية
 st.set_page_config(page_title="نظام جماعة معلين الرقمي", page_icon="⚖️", layout="wide")
 
-# تطبيق التنسيق من اليمين إلى اليسار (RTL) وتحسين مظهر الواجهات والأزرار
 st.markdown("""
     <style>
     div[data-testid="stMarkdownContainer"] { text-align: right; direction: rtl; }
@@ -16,7 +15,7 @@ st.markdown("""
     </style>
     """, unsafe_allow_html=True)
 
-# 2. تهيئة قاعدة البيانات الأساسية في الذاكرة (Session State) لضمان ثبات العمليات
+# إدارة الجلسة وقاعدة البيانات في المتصفح لمنع التجميد وثبات الحسابات
 if 'users_db' not in st.session_state:
     st.session_state.users_db = {"admin": "123"}
 
@@ -30,14 +29,12 @@ if 'members_db' not in st.session_state:
 if 'logged_in' not in st.session_state:
     st.session_state.logged_in = False
 
+# متغير لمتابعة العضو الذي يتم تعديله حالياً
 if 'editing_member_idx' not in st.session_state:
     st.session_state.editing_member_idx = None
 
-# ==========================================
-# 🔐 شـاشـة تـسـجـيـل الـدخـول (مغلقة تماماً لحماية الخصوصية)
-# ==========================================
+# شاشة تسجيل الدخول
 if not st.session_state.logged_in:
-    st.markdown("<br><br><br>", unsafe_allow_html=True)
     st.subheader("🔐 تسجيل الدخول - نظام جماعة معلين")
     u = st.text_input("اسم المستخدم:", key="login_username_key").strip()
     p = st.text_input("كلمة السر:", type="password", key="login_password_key").strip()
@@ -60,14 +57,16 @@ else:
     st.title("⚖️ النظام الإلكتروني - جماعة معلين")
     st.markdown("---")
 
-    # 📊 لوحة الإحصائيات الشاملة والمالية (حساب فوري مباشر وديناميكي)
-    total = len(st.session_state.members_db)
+    # حساب الإحصائيات العامة والمالية بدقة (تحديث فوري لـ 500 ريال عند اختيار نعم)
+    df = pd.DataFrame(st.session_state.members_db)
+    total = len(df)
     males = sum(1 for m in st.session_state.members_db if m["الجنس"] == "ذكر")
     females = total - males
     paid = sum(1 for m in st.session_state.members_db if m["تم دفع الصندوق"] == "نعم")
     not_paid = total - paid
     box_money = paid * 500  # حساب ميزانية الـ 500 ريال التلقائية
 
+    # عرض لوحة الإحصائيات بوضوح عبر نظام التقسيم القياسي
     st.markdown("### 📊 إحصائيات الصندوق العامة المحدثة")
     c1, c2, c3, c4, c5, c6 = st.columns(6)
     c1.markdown(f'<div class="stat-box"><b>👥 إجمالي الأعضاء</b><br><span style="font-size:20px; color:#2e7d32; font-weight:bold;">{total}</span></div>', unsafe_allow_html=True)
@@ -136,4 +135,7 @@ else:
             with col_save:
                 if st.button("💾 حفظ التعديلات الجديدة للعضو", key="save_edited_member_btn", use_container_width=True):
                     if edit_name.strip() and edit_code.strip():
-                        # تم إغلاق القوس البرمجي المشخص وتنسيق الحفظ المباشر هنا بدقة 100% وإنهاء الـ SyntaxError
+                        st.session_state.members_db[st.session_state.editing_member_idx] = {"الاسم": edit_name.strip(), "كود العائلة": edit_code.strip().upper(), "تم دفع الصندوق": edit_paid, "الجنس": edit_gender}
+                        st.session_state.editing_member_idx = None
+                        st.success("تم تحديث بيانات العضو بنجاح.")
+                        st.rerun()
