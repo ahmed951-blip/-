@@ -4,10 +4,14 @@ import sqlite3
 from io import BytesIO
 from datetime import datetime
 
-# Word
+# =========================
+# WORD
+# =========================
 from docx import Document
 
+# =========================
 # PDF عربي
+# =========================
 import arabic_reshaper
 from bidi.algorithm import get_display
 
@@ -26,21 +30,23 @@ from reportlab.lib.pagesizes import A4
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
 
-# Excel
+# =========================
+# EXCEL
+# =========================
 from openpyxl import Workbook
 
-# =========================================================
-# إعدادات الصفحة
-# =========================================================
+# =========================
+# إعداد الصفحة
+# =========================
 st.set_page_config(
     page_title="نظام جماعة معلين",
     page_icon="⚖️",
     layout="wide"
 )
 
-# =========================================================
-# التصميم الاحترافي
-# =========================================================
+# =========================
+# CSS
+# =========================
 st.markdown("""
 <style>
 
@@ -50,30 +56,11 @@ html, body, [data-testid="stAppViewContainer"], .main {
     background-color: #f5f7fb;
 }
 
-/* عناوين */
 h1,h2,h3,h4,h5,h6{
     font-weight:bold;
-    color:#0f172a;
 }
 
-/* بطاقات الإحصائيات */
-.stat-card{
-    background: linear-gradient(135deg,#1e3c72,#2a5298);
-    padding:25px;
-    border-radius:20px;
-    color:white;
-    text-align:center;
-    box-shadow:0px 5px 20px rgba(0,0,0,0.15);
-    transition:0.3s;
-    margin-bottom:15px;
-}
-
-.stat-card:hover{
-    transform:scale(1.03);
-}
-
-/* الأزرار */
-.stButton>button{
+.stButton > button{
     width:100%;
     border:none;
     border-radius:12px;
@@ -84,27 +71,35 @@ h1,h2,h3,h4,h5,h6{
     padding:10px;
 }
 
-/* المدخلات */
 .stTextInput input,
 .stNumberInput input{
     border-radius:10px;
 }
 
-/* شاشة الدخول */
+.stat-card{
+    background:linear-gradient(135deg,#1e3c72,#2a5298);
+    color:white;
+    padding:25px;
+    border-radius:20px;
+    text-align:center;
+    box-shadow:0px 5px 20px rgba(0,0,0,0.15);
+    margin-bottom:15px;
+}
+
 .login-box{
     background:white;
     padding:40px;
     border-radius:20px;
-    box-shadow:0px 0px 25px rgba(0,0,0,0.1);
+    box-shadow:0px 0px 20px rgba(0,0,0,0.1);
     margin-top:80px;
 }
 
 </style>
 """, unsafe_allow_html=True)
 
-# =========================================================
+# =========================
 # قاعدة البيانات
-# =========================================================
+# =========================
 conn = sqlite3.connect(
     "maalin.db",
     check_same_thread=False
@@ -112,9 +107,9 @@ conn = sqlite3.connect(
 
 cursor = conn.cursor()
 
-# =========================================================
-# إنشاء الجداول
-# =========================================================
+# =========================
+# جدول الأعضاء
+# =========================
 cursor.execute("""
 CREATE TABLE IF NOT EXISTS members(
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -128,38 +123,42 @@ CREATE TABLE IF NOT EXISTS members(
 )
 """)
 
+# =========================
+# جدول المستخدمين
+# =========================
 cursor.execute("""
 CREATE TABLE IF NOT EXISTS users(
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     username TEXT,
-    password TEXT
+    password TEXT,
+    role TEXT
 )
 """)
 
 conn.commit()
 
-# =========================================================
-# إنشاء الأدمن
-# =========================================================
+# =========================
+# إنشاء حساب الأدمن
+# =========================
 cursor.execute("""
 SELECT * FROM users
 WHERE username='admin'
 """)
 
-admin_exists = cursor.fetchone()
+admin = cursor.fetchone()
 
-if not admin_exists:
+if not admin:
 
     cursor.execute("""
-    INSERT INTO users(username,password)
-    VALUES('admin','123')
+    INSERT INTO users(username,password,role)
+    VALUES('admin','123','admin')
     """)
 
     conn.commit()
 
-# =========================================================
-# دوال
-# =========================================================
+# =========================
+# تحميل الأعضاء
+# =========================
 def load_members():
 
     return pd.read_sql(
@@ -167,10 +166,9 @@ def load_members():
         conn
     )
 
-
-# =========================================================
-# Excel
-# =========================================================
+# =========================
+# إنشاء Excel
+# =========================
 def create_excel(df):
 
     output = BytesIO()
@@ -179,7 +177,7 @@ def create_excel(df):
 
     ws = wb.active
 
-    ws.title = "الأعضاء"
+    ws.title = "التقرير"
 
     ws.append(list(df.columns))
 
@@ -190,10 +188,9 @@ def create_excel(df):
 
     return output.getvalue()
 
-
-# =========================================================
-# Word
-# =========================================================
+# =========================
+# إنشاء Word
+# =========================
 def create_word(df):
 
     doc = Document()
@@ -210,17 +207,17 @@ def create_word(df):
 
     table.style = "Table Grid"
 
-    hdr = table.rows[0].cells
+    hdr_cells = table.rows[0].cells
 
     for i, col in enumerate(df.columns):
-        hdr[i].text = str(col)
+        hdr_cells[i].text = str(col)
 
     for _, row in df.iterrows():
 
         cells = table.add_row().cells
 
-        for i, val in enumerate(row):
-            cells[i].text = str(val)
+        for i, value in enumerate(row):
+            cells[i].text = str(value)
 
     output = BytesIO()
 
@@ -228,10 +225,9 @@ def create_word(df):
 
     return output.getvalue()
 
-
-# =========================================================
-# PDF عربي
-# =========================================================
+# =========================
+# إنشاء PDF عربي
+# =========================
 def create_pdf(df):
 
     output = BytesIO()
@@ -248,22 +244,22 @@ def create_pdf(df):
         pagesize=A4
     )
 
-    styles = getSampleStyleSheet()
-
     elements = []
+
+    styles = getSampleStyleSheet()
 
     title_text = "تقرير أعضاء جماعة معلين"
 
-    reshaped_title = arabic_reshaper.reshape(
+    reshaped = arabic_reshaper.reshape(
         title_text
     )
 
-    bidi_title = get_display(
-        reshaped_title
+    bidi_text = get_display(
+        reshaped
     )
 
     title = Paragraph(
-        f"<font name='Arabic'>{bidi_title}</font>",
+        f"<font name='Arabic'>{bidi_text}</font>",
         styles['Title']
     )
 
@@ -277,15 +273,15 @@ def create_pdf(df):
 
     for col in df.columns:
 
-        reshaped = arabic_reshaper.reshape(
+        reshaped_col = arabic_reshaper.reshape(
             str(col)
         )
 
-        bidi_text = get_display(
-            reshaped
+        bidi_col = get_display(
+            reshaped_col
         )
 
-        headers.append(bidi_text)
+        headers.append(bidi_col)
 
     data.append(headers)
 
@@ -295,15 +291,15 @@ def create_pdf(df):
 
         for item in row:
 
-            reshaped = arabic_reshaper.reshape(
+            reshaped_item = arabic_reshaper.reshape(
                 str(item)
             )
 
-            bidi_text = get_display(
-                reshaped
+            bidi_item = get_display(
+                reshaped_item
             )
 
-            row_data.append(bidi_text)
+            row_data.append(bidi_item)
 
         data.append(row_data)
 
@@ -325,15 +321,21 @@ def create_pdf(df):
 
     return output.getvalue()
 
-# =========================================================
-# session
-# =========================================================
+# =========================
+# Session
+# =========================
 if "logged_in" not in st.session_state:
     st.session_state.logged_in = False
 
-# =========================================================
+if "username" not in st.session_state:
+    st.session_state.username = ""
+
+if "role" not in st.session_state:
+    st.session_state.role = ""
+
+# =========================
 # تسجيل الدخول
-# =========================================================
+# =========================
 if not st.session_state.logged_in:
 
     col1, col2, col3 = st.columns([1,2,1])
@@ -341,19 +343,17 @@ if not st.session_state.logged_in:
     with col2:
 
         st.markdown("""
-        <div class="login-box">
-        <h1 style="text-align:center">
+        <div class='login-box'>
+        <h1 style='text-align:center'>
         ⚖️ نظام جماعة معلين
         </h1>
-        <p style="text-align:center;color:gray">
-        تسجيل الدخول للإدارة
+        <p style='text-align:center'>
+        تسجيل الدخول
         </p>
         </div>
         """, unsafe_allow_html=True)
 
-        username = st.text_input(
-            "👤 اسم المستخدم"
-        )
+        username = st.text_input("👤 اسم المستخدم")
 
         password = st.text_input(
             "🔑 كلمة المرور",
@@ -372,334 +372,36 @@ if not st.session_state.logged_in:
             if user:
 
                 st.session_state.logged_in = True
+                st.session_state.username = user[1]
+                st.session_state.role = user[3]
+
+                st.success("تم تسجيل الدخول")
 
                 st.rerun()
 
             else:
                 st.error("بيانات الدخول غير صحيحة")
 
-# =========================================================
-# النظام الرئيسي
-# =========================================================
+# =========================
+# النظام
+# =========================
 else:
 
-    col1, col2 = st.columns([8,1])
+    members_df = load_members()
 
-    with col2:
+    total = len(members_df)
 
-        if st.button("🚪 خروج"):
+    male_count = len(
+        members_df[members_df["gender"] == "ذكر"]
+    )
 
-            st.session_state.logged_in = False
+    female_count = len(
+        members_df[members_df["gender"] == "أنثى"]
+    )
 
-            st.rerun()
+    paid_count = len(
+        members_df[members_df["paid"] == "نعم"]
+    )
 
-    st.title("⚖️ نظام جماعة معلين الاحترافي")
+    not_paid_count = total - paid_count
 
-    df = load_members()
-
-    total = len(df)
-
-    paid = len(df[df["paid"] == "نعم"])
-
-    not_paid = total - paid
-
-    males = len(df[df["gender"] == "ذكر"])
-
-    females = len(df[df["gender"] == "أنثى"])
-
-    fund = paid * 500
-
-    st.markdown("## 📊 الإحصائيات")
-
-    c1, c2, c3, c4, c5, c6 = st.columns(6)
-
-    c1.markdown(f"""
-    <div class='stat-card'>
-    👥
-    <h2>{total}</h2>
-    إجمالي الأعضاء
-    </div>
-    """, unsafe_allow_html=True)
-
-    c2.markdown(f"""
-    <div class='stat-card'>
-    👨
-    <h2>{males}</h2>
-    الذكور
-    </div>
-    """, unsafe_allow_html=True)
-
-    c3.markdown(f"""
-    <div class='stat-card'>
-    👩
-    <h2>{females}</h2>
-    الإناث
-    </div>
-    """, unsafe_allow_html=True)
-
-    c4.markdown(f"""
-    <div class='stat-card'>
-    ✅
-    <h2>{paid}</h2>
-    المسددين
-    </div>
-    """, unsafe_allow_html=True)
-
-    c5.markdown(f"""
-    <div class='stat-card'>
-    ❌
-    <h2>{not_paid}</h2>
-    غير المسددين
-    </div>
-    """, unsafe_allow_html=True)
-
-    c6.markdown(f"""
-    <div class='stat-card'>
-    💰
-    <h2>{fund:,}</h2>
-    ريال
-    </div>
-    """, unsafe_allow_html=True)
-
-    st.markdown("---")
-
-    tab1, tab2, tab3 = st.tabs([
-        "👥 إدارة الأعضاء",
-        "📊 التقارير",
-        "💰 التقسيم المالي"
-    ])
-
-    # =====================================================
-    # الأعضاء
-    # =====================================================
-    with tab1:
-
-        st.subheader("➕ إضافة عضو")
-
-        with st.form("add_member"):
-
-            name = st.text_input("الاسم")
-
-            family = st.text_input("كود العائلة")
-
-            gender = st.selectbox(
-                "الجنس",
-                ["ذكر","أنثى"]
-            )
-
-            paid = st.selectbox(
-                "حالة الدفع",
-                ["نعم","لا"]
-            )
-
-            phone = st.text_input("الجوال")
-
-            notes = st.text_area("ملاحظات")
-
-            submit = st.form_submit_button(
-                "إضافة عضو"
-            )
-
-            if submit:
-
-                cursor.execute("""
-                INSERT INTO members(
-                    name,
-                    family_code,
-                    gender,
-                    paid,
-                    phone,
-                    notes,
-                    created_at
-                )
-                VALUES(?,?,?,?,?,?,?)
-                """, (
-                    name,
-                    family,
-                    gender,
-                    paid,
-                    phone,
-                    notes,
-                    datetime.now().strftime("%Y-%m-%d")
-                ))
-
-                conn.commit()
-
-                st.success("تمت إضافة العضو")
-
-                st.rerun()
-
-        st.markdown("---")
-
-        st.subheader("✏️ تعديل وحذف الأعضاء")
-
-        members = load_members()
-
-        for _, row in members.iterrows():
-
-            with st.expander(f"👤 {row['name']}"):
-
-                new_name = st.text_input(
-                    "الاسم",
-                    row["name"],
-                    key=f"name_{row['id']}"
-                )
-
-                new_family = st.text_input(
-                    "العائلة",
-                    row["family_code"],
-                    key=f"family_{row['id']}"
-                )
-
-                new_gender = st.selectbox(
-                    "الجنس",
-                    ["ذكر","أنثى"],
-                    index=0 if row["gender"]=="ذكر" else 1,
-                    key=f"gender_{row['id']}"
-                )
-
-                new_paid = st.selectbox(
-                    "الدفع",
-                    ["نعم","لا"],
-                    index=0 if row["paid"]=="نعم" else 1,
-                    key=f"paid_{row['id']}"
-                )
-
-                new_phone = st.text_input(
-                    "الجوال",
-                    row["phone"],
-                    key=f"phone_{row['id']}"
-                )
-
-                new_notes = st.text_area(
-                    "ملاحظات",
-                    row["notes"],
-                    key=f"notes_{row['id']}"
-                )
-
-                cc1, cc2 = st.columns(2)
-
-                with cc1:
-
-                    if st.button(
-                        "💾 حفظ",
-                        key=f"save_{row['id']}"
-                    ):
-
-                        cursor.execute("""
-                        UPDATE members
-                        SET
-                        name=?,
-                        family_code=?,
-                        gender=?,
-                        paid=?,
-                        phone=?,
-                        notes=?
-                        WHERE id=?
-                        """, (
-                            new_name,
-                            new_family,
-                            new_gender,
-                            new_paid,
-                            new_phone,
-                            new_notes,
-                            row["id"]
-                        ))
-
-                        conn.commit()
-
-                        st.success("تم التعديل")
-
-                        st.rerun()
-
-                with cc2:
-
-                    if st.button(
-                        "🗑️ حذف",
-                        key=f"del_{row['id']}"
-                    ):
-
-                        cursor.execute("""
-                        DELETE FROM members
-                        WHERE id=?
-                        """, (row["id"],))
-
-                        conn.commit()
-
-                        st.warning("تم حذف العضو")
-
-                        st.rerun()
-
-    # =====================================================
-    # التقارير
-    # =====================================================
-    with tab2:
-
-        st.subheader("📊 التقارير")
-
-        report_df = load_members()
-
-        st.dataframe(
-            report_df,
-            use_container_width=True
-        )
-
-        # Excel
-        excel_file = create_excel(report_df)
-
-        st.download_button(
-            "📥 تحميل Excel",
-            excel_file,
-            "report.xlsx"
-        )
-
-        # Word
-        word_file = create_word(report_df)
-
-        st.download_button(
-            "📥 تحميل Word",
-            word_file,
-            "report.docx"
-        )
-
-        # PDF
-        pdf_file = create_pdf(report_df)
-
-        st.download_button(
-            "📥 تحميل PDF",
-            pdf_file,
-            "report.pdf"
-        )
-
-    # =====================================================
-    # التقسيم المالي
-    # =====================================================
-    with tab3:
-
-        st.subheader("💰 التقسيم المالي")
-
-        amount = st.number_input(
-            "المبلغ الإجمالي",
-            min_value=0.0
-        )
-
-        if amount > 0 and total > 0:
-
-            share = amount / total
-
-            st.metric(
-                "المبلغ للفرد الواحد",
-                f"{share:,.2f} ريال"
-            )
-
-            calc_df = load_members()
-
-            calc_df["المبلغ المستحق"] = round(
-                share,
-                2
-            )
-
-            st.dataframe(
-                calc_df,
-                use_container_width=True
-            )
