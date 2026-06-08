@@ -5,7 +5,7 @@ import random
 # 1. إعدادات الواجهة الأساسية واللغة العربية الشاملة (RTL)
 st.set_page_config(page_title="نظام جماعة معلين الرقمي", page_icon="⚖️", layout="wide")
 
-# تطبيق التنسيق الفاخر لليمين، تكبير الأيقونات، الخطوف والتبويبات
+# تطبيق التنسيق الفاخر لليمين، تكبير الأيقونات، الخطوط والتبويبات
 st.markdown("""
     <style>
     html, body, [data-testid="stAppViewContainer"], .main {
@@ -105,7 +105,7 @@ else:
 
     st.markdown("---")
 
-    # كتل التبويبات الأربعة المحمية كلياً ضد الانهيار الشاشة البيضاء
+    # كتل التبويبات الأربعة المحمية كلياً ضد الانهيار
     tab1, tab2, tab3, tab4 = st.tabs([
         "💰 1. الحساب والتقسيم المالي", 
         "👥 2. إدارة وتعديل الأعضاء", 
@@ -114,44 +114,43 @@ else:
     ])
 
     # ------------------------------------------
-    # التبويب الأول: الحساب والتقسيم المالي وإصدار تقارير الـ PDF
+    # التبويب الأول: الحساب والتقسيم المالي المطور (مع خيارات الفرز والترتيب الأربعة للتقرير المالي)
     # ------------------------------------------
     with tab1:
-        st.subheader("💵 تقسيم مبلغ مالي جديد بالتساوي على أفراد الجماعة المستحقين")
-        amt = st.number_input("أدخل المبلغ المالي الإجمالي المراد تقسيمه (ريال سعودي):", min_value=0.0, value=0.0, key="fin_amt_in")
-        reason = st.text_input("سبب أو مناسبة أو عنوان هذا التقسيم المالي:", value="دية عامة", key="fin_reason_in")
+        st.subheader("💵 تقسيم مبلغ مالي معين بالتساوي مع تحديد نظام ترتيب كشف التقرير")
+        
+        col_m1, col_m2 = st.columns(2)
+        with col_m1:
+            amt = st.number_input("أدخل المبلغ المالي الإجمالي المراد تقسيمه (ريال سعودي):", min_value=0.0, value=0.0, key="fin_amt_in")
+        with col_m2:
+            reason = st.text_input("سبب أو مناسبة أو عنوان هذا التقسيم المالي:", value="دية عاجلة", key="fin_reason_in")
+            
+        # ميزة الفرز والترتيب الجديدة والمطلوبة بداخل تبويب الحساب المالي لتقرير الـ PDF
+        sort_fin_opt = st.selectbox("🎯 نظام ترتيب وفرز كشف التقرير المالي الحالي:", ["بدون ترتيب", "أبجدي (من أ إلى ي)", "حسب كود العائلة", "حسب الجنس", "عشوائي (خلط عشوائي للسجلات)"], key="sort_fin_selectbox_key")
         
         if amt > 0 and total > 0:
             share = amt / total
-            st.metric("💰 الحصة المقررة السداد للفرد الواحد حالياً", f"{share:,.2f} ريال")
+            st.metric("💰 الحصة المقررة السداد للفرد الواحد حالياً بالتساوي", f"{share:,.2f} ريال")
             
+            # بناء كشف التوزيع الفعلي بناء على قاعدة البيانات
             df_calc = pd.DataFrame(st.session_state.members_db)
-            df_calc["المبلغ المالي المستحق (ريال)"] = round(share, 2)
+            df_calc["المبلغ المستحق سداده (ريال)"] = round(share, 2)
+            
+            # تطبيق نظام الفرز والترتيب المختار ديناميكياً على الشاشة وفي ملف الـ PDF معاً
+            if sort_fin_opt == "أبجدي (من أ إلى ي)":
+                df_calc = df_calc.sort_values(by="الاسم")
+            elif sort_fin_opt == "حسب كود العائلة":
+                df_calc = df_calc.sort_values(by="كود العائلة")
+            elif sort_fin_opt == "حسب الجنس":
+                df_calc = df_calc.sort_values(by="الجنس")
+            elif sort_fin_opt == "عشوائي (خلط عشوائي للسجلات)":
+                df_calc = df_calc.sample(frac=1, random_state=random.randint(1, 1000)).reset_index(drop=True)
+                
+            st.markdown("#### 📋 جدول المطالبات المالية الحالي بالفرز المختار:")
             st.dataframe(df_calc, use_container_width=True, hide_index=True)
             
-            h_rows_fin = "".join([f"<tr><td>{r['الاسم']}</td><td>{r['كود العائلة']}</td><td>{share:,.2f} ريال</td></tr>" for _, r in df_calc.iterrows()])
-            html_fin = f'<html dir="rtl" lang="ar"><head><meta charset="utf-8"><style>body {{ font-family: "Arial", sans-serif; padding: 40px; text-align: right; background-color: #ffffff; }} .header-title {{ color: #b71c1c; text-align: center; border-bottom: 3px solid #b71c1c; padding-bottom: 12px; font-size: 24px; }} .summary-box {{ background-color: #f8f9fa; border-right: 6px solid #b71c1c; padding: 15px; margin: 20px 0; font-size: 16px; line-height: 1.8; }} table {{ width:100%; border-collapse:collapse; margin-top: 25px; }} th, td {{ border:1px solid #dddddd; padding:12px; font-size:15px; text-align: right; }} th {{ background-color: #b71c1c; color: white; font-weight: bold; }} tr:nth-child(even) {{ background-color: #f2f2f2; }} .print-button {{ display:block; width:100%; padding:15px; background-color:#1976d2; color:white; font-size:18px; font-weight:bold; text-align:center; border:none; border-radius:8px; cursor:pointer; margin-bottom:25px; }} @media print {{ .print-button {{ display:none; }} }} </style></head><body><button class="print-button" onclick="window.print()">🖨️ اضغط هنا الآن لحفظ هذا التقرير المالي كملف PDF</button><h2 class="header-title">تقرير مالي رسمي خاص بتقسيم المستحقات - جماعة معلين</h2><div class="summary-box"><b>📌 موضوع ومناسبة التقسيم:</b> {reason}<br><b>💰 إجمالي المبلغ المالي المطلوب تقسيمه:</b> {amt:,.2f} ريال سعودي<br><b>👥 إجمالي عدد الأفراد المستحقين للسداد:</b> {total} فرد<br><b>💵 المطالبة المالية المقررة للفرد الواحد:</b> {share:,.2f} ريال سعودي بالتساوي<br></div><table><thead><tr><th>اسم فرد الجماعة</th><th>كود عائلة العضو</th><th>المبلغ المالي المستحق سداده</th></tr></thead><tbody>{h_rows_fin}</tbody></table><br><br><br><p style="text-align:center; font-size:12px; color:#555555;">مستند رسمي صادر إلكترونياً عن نظام إدارة شؤون جماعة معلين الرقمي</p></body></html>'
-            st.download_button(f"📥 تحميل مستند تقرير تقسيم ({reason}) كـ PDF مخصص للطباعة", data=html_fin, file_name=f"تقرير_تقسيم_{reason}.html", mime="text/html", key="dl_fin_pdf", use_container_width=True)
-
-    # ------------------------------------------
-    # التبويب الثاني: إدارة وتعديل الأعضاء (تم تأمينه وإلغاء استدعاء st.columns داخله نهائياً)
-    # ------------------------------------------
-    with tab2:
-        st.subheader("👥 لوحة إضافة وحذف كشوفات الأعضاء")
-        
-        n_name = st.text_input("اسم العضو الثلاثي الكامل الجديد:", key="mem_add_name_field")
-        n_code = st.text_input("كود العائلة الخاص بالعضو الجديد:", key="mem_add_code_field")
-        n_paid = st.selectbox("تم دفع مبلغ الصندوق؟ (سيضيف 500 ريال للصندوق فوراً عند نعم):", ["نعم", "لا"], key="mem_add_paid_field")
-        n_gender = st.selectbox("الجنس المعتمد للعضو:", ["ذكر", "أنثى"], key="mem_add_gender_field")
-        
-        if st.button("➕ تسجيل العضو الجديد واحتساب مستحقاته", key="execute_add_member_action_btn"):
-            if n_name.strip() and n_code.strip():
-                if not any(d['الاسم'] == n_name.strip() for d in st.session_state.members_db):
-                    st.session_state.members_db.append({"الاسم": n_name.strip(), "كود العائلة": n_code.strip().upper(), "تم دفع الصندوق": n_paid, "الجنس": n_gender})
-                    st.success("تم تسجيل العضو بنجاح.")
-                    st.rerun()
-                else: st.warning("هذا الاسم مسجل وموجود مسبقاً.")
-            else: st.error("يرجى تعبئة حقول اسم العضو وكود العائلة أولاً.")
-
-        st.markdown("---")
-        st.subheader("📋 قائمة الأعضاء وخيار الحذف الفوري:")
+            # بناء قالب المستند المفرز والموجه فورا للطباعة كـ PDF ملون ونظيف للجروب والطباعة
+            h_rows_fin = "".join([f"<tr><td>{r['الاسم']}</td><td>{r['كود العائلة']}</td><td>{r['الجنس']}</td><td>{share:,.2f} ريال</td></tr>" for _, r in df_calc.iterrows()])
+            html_fin = f'<html dir="rtl" lang="ar"><head><meta charset="utf-8"><style>body {{ font-family: "Arial", sans-serif; padding: 40px; text-align: right; background-color: #ffffff; }} .header-title {{ color: #b71c1c; text-align: center; border-bottom: 3px solid #b71c1c; padding-bottom: 12px; font-size: 24px; }} .summary-box {{ background-color: #f8f9fa; border-right: 6px solid #b71c1c; padding: 15px; margin: 20px 0; font-size: 16px; line-height: 1.8; }} table {{ width:100%; border-collapse:collapse; margin-top: 25px; }} th, td {{ border:1px solid #dddddd; padding:12px; font-size:15px; text-align: right; }} th {{ background-color: #b71c1c; color: white; font-weight: bold; }} tr:nth-child(even) {{ background-color: #f2f2f2; }} .print-button {{ display:block; width:100%; padding:15px; background-color:#1976d2; color:white; font-size:18px; font-weight:bold; text-align:center; border:none; border-radius:8px; cursor:pointer; margin-bottom:25px; }} @media print {{ .print-button {{ display:none; }} }} </style></head><body><button class="print-button" onclick="window.print()">🖨️ اضغط هنا الآن لحفظ وطباعة هذا التقرير المالي كملف PDF مفرز</button><h2 class="header-title">تقرير مالي رسمي خاص بتقسيم المستحقات - جماعة معلين</h2><div class="summary-box"><b>📌 موضوع ومناسبة التقسيم:</b> {reason}<br><b>💰 إجمالي المبلغ المالي المطلوب تقسيمه:</b> {amt:,.2f} ريال سعودي<br><b>👥 إجمالي عدد الأفراد المستحقين للسداد:</b> {total} فرد<br><b>🎯 نظام ترتيب وفرز الكشف المعتمد في هذا المستند:</b> {sort_fin_opt}<br><b>💵 المطالبة المالية المقررة للفرد الواحد:</b> {share:,.2f} ريال سعودي بالتساوي<br></div><table><thead><tr><th>اسم فرد الجماعة</th><th>كود عائلة العضو</th><th>الجنس</th><th>المبلغ المالي المستحق سداده</th></tr></thead><tbody>{h_rows_fin}</tbody></table><br><br><br><p style="text-align:center; font-size:12px; color:#555555;">مستند رسمي صادر إلكترونياً عن نظام إدارة شؤون جماعة معلين الرقمي</p></body></html>'
+            
+            st.markdown("---")
