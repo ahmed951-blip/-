@@ -1,7 +1,5 @@
 streamlit
-pandas
-python-docx
-reportlab
-openpyxl
-arabic-reshaper
-python-bidi
+torch
+transformers
+pillow
+requests
