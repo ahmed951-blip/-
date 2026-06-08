@@ -84,21 +84,21 @@ if not st.session_state.logged_in:
     
     if st.button("🔓 تسجيل الدخول الآمن للموقع", key="btn_login_submit"):
         if u in st.session_state.users_db and st.session_state.users_db[u] == p:
+            # الحل القاطع: تعديل الحالة وتفعيل العرض التلقائي بدون استخدام دوال الريرن المسببة للشاشة البيضاء
             st.session_state.logged_in = True
-            st.success("تم التحقق بنجاح.. جاري الدخول للوحة المستحقات.")
-            # استخدام نظام إعادة التشغيل المتوافق لعدم إظهار صفحة بيضاء
-            try: st.rerun()
-            except AttributeError: st.experimental_rerun()
+            st.success("تم التحقق بنجاح.. جاري العخول للوحة المستحقات.")
+            st.rerun()
         else:
             st.error("بيانات الدخول المدخلة غير صحيحة. يرجى المحاولة مجدداً.")
-else:
+
+# دالة العرض المشروط الفورية بعد نجاح التحقق لمنع الاختفاء والانهيار بالخادم
+if st.session_state.logged_in:
     # شريط تسجيل الخروج العلوي المستقر والمعادل برقم عمود صريح لمنع عطل المتصفح
     col_logout_space, col_logout_action = st.columns(2)
     with col_logout_action:
         if st.button("🚪 خروج من النظام", key="btn_logout_top"):
             st.session_state.logged_in = False
-            try: st.rerun()
-            except AttributeError: st.experimental_rerun()
+            st.rerun()
 
     st.title("⚖️ النظام الإلكتروني المطور لإدارة المستحقات - جماعة معلين")
     st.markdown("---")
@@ -122,7 +122,7 @@ else:
 
     st.markdown("---")
 
-    # كتل التبويبات الأربعة
+    # كتل التبويبات الأربعة الشاملة والآمنة
     tab1, tab2, tab3, tab4 = st.tabs([
         "💰 1. الحساب والتقسيم المالي", 
         "👥 2. إدارة وتعديل بيانات الأعضاء", 
@@ -157,6 +157,4 @@ else:
         st.subheader("👥 لوحة إضافة وحذف كشوفات الأعضاء")
         n_name = st.text_input("اسم العضو الثلاثي الكامل الجديد:", key="mem_add_name_field")
         n_code = st.text_input("كود العائلة الخاص بالعضو الجديد:", key="mem_add_code_field")
-        n_paid = st.selectbox("تم دفع مبلغ الصندوق؟", ["نعم", "لا"], key="mem_add_paid_field")
-        n_gender = st.selectbox("الجنس المعتمد للعضو:", ["ذكر", "أنثى"], key="mem_add_gender_field")
-        
+        n_paid = st.selectbox("تم دفع مبلغ الصندوق؟ (سيضيف 500 ريال للصندوق فوراً عند نعم):", ["نعم", "لا"], key="mem_add_paid_field")
