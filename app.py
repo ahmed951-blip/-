@@ -6,13 +6,13 @@ from transformers import pipeline
 # 1. إعدادات واجهة الموقع
 st.set_page_config(page_title="محلل الصور الذكي", page_icon="🖼️")
 st.title("🖼️ تطبيق وصف الصور التلقائي (BLIP)")
-st.write("ارفع صورة من جهازك أو ضع رابطاً مباشراً لصورة ليقوم الذكاء الاصطناعي بوصفها.")
+st.write("ارفع صورة من جهازك أو وضع رابطاً مباشراً لصورة ليقوم الذكاء الاصطناعي بوصفها.")
 
-# 2. تحميل النموذج بأكثر طريقة مستقرة عبر pipeline
+# 2. تحميل النموذج باسم المهمة الجديد المعتمد في مكتبة transformers
 @st.cache_resource
 def get_caption_pipeline():
-    # استخدام نسخة خفيفة وسريعة ومستقرة جداً
-    return pipeline("image-to-text", model="Salesforce/blip-image-captioning-base")
+    # تم تحديث اسم المهمة إلى image-text-to-text لتجنب الخطأ السابق تماماً
+    return pipeline("image-text-to-text", model="Salesforce/blip-image-captioning-base")
 
 try:
     captioner = get_caption_pipeline()
