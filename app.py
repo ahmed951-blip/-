@@ -1,64 +1,60 @@
 import streamlit as st
-from PIL import Image
 import requests
-from transformers import BlipProcessor, BlipForConditionalGeneration
+from PIL import Image
+from transformers import pipeline
 
-# إعدادات الصفحة
-st.set_page_config(page_title="BLIP Image Captioning", page_icon="🖼️", layout="centered")
+# 1. إعدادات واجهة الموقع
+st.set_page_config(page_title="محلل الصور الذكي", page_icon="🖼️")
+st.title("🖼️ تطبيق وصف الصور التلقائي (BLIP)")
+st.write("ارفع صورة من جهازك أو ضع رابطاً مباشراً لصورة ليقوم الذكاء الاصطناعي بوصفها.")
 
-st.title("🖼️ BLIP Image Captioning App")
-st.write("قم برفع صورة أو وضع رابط صورة للحصول على وصف تلقائي لمحتواها باستخدام نموذج BLIP.")
-
-# تحميل النموذج والمشغل (Processor) وتخزينهما في الذاكرة المؤقتة لسرعة الأداء
+# 2. تحميل النموذج بأكثر طريقة مستقرة عبر pipeline
 @st.cache_resource
-def load_model():
-    processor = BlipProcessor.from_pretrained("Salesforce/blip-image-captioning-base")
-    model = BlipForConditionalGeneration.from_pretrained("Salesforce/blip-image-captioning-base")
-    return processor, model
+def get_caption_pipeline():
+    # استخدام نسخة خفيفة وسريعة ومستقرة جداً
+    return pipeline("image-to-text", model="Salesforce/blip-image-captioning-base")
 
 try:
-    processor, model = load_model()
+    captioner = get_caption_pipeline()
 except Exception as e:
-    st.error(f"حدث خطأ أثناء تحميل النموذج: {e}")
+    st.error(f"فشل في تحميل نموذج الذكاء الاصطناعي: {e}")
 
-# خيارات إدخال الصورة
-option = st.radio("اختر طريقة إدخال الصورة:", ("رفع ملف صورة", "إدخال رابط صورة"))
+# 3. خيارات إدخال الصورة
+choice = st.radio("اختر طريقة إدخال الصورة:", ["رفع ملف صورة", "إدخال رابط صورة"])
+img_input = None
 
-raw_image = None
-
-if option == "رفع ملف صورة":
+if choice == "رفع ملف صورة":
     uploaded_file = st.file_uploader("اختر صورة...", type=["jpg", "jpeg", "png"])
-    if uploaded_file is not None:
+    if uploaded_file:
         try:
-            raw_image = Image.open(uploaded_file).convert('RGB')
-        except Exception as e:
-            st.error(f"عذراً، تعذر قراءة الملف المرفوع: {e}")
+            img_input = Image.open(uploaded_file).convert("RGB")
+        except:
+            st.error("خطأ في قراءة ملف الصورة.")
 
-elif option == "إدخال رابط صورة":
-    url = st.text_input("أدخل رابط الصورة المباشر (URL):", "")
-    if url:
+else:
+    url_input = st.text_input("أدخل رابط الصورة المباشر:")
+    if url_input:
         try:
-            # إضافة User-Agent لتجنب حظر الطلب من بعض المواقع
+            # إضافة حماية للروابط لمنع حظر خوادم Streamlit
             headers = {"User-Agent": "Mozilla/5.0"}
-            raw_image = Image.open(requests.get(url, stream=True, headers=headers).raw).convert('RGB')
-        except Exception as e:
-            st.error(f"تعذر تحميل الصورة من الرابط. تأكد من أن الرابط مباشر وصحيح. الخطأ: {e}")
+            response = requests.get(url_input, stream=True, headers=headers)
+            img_input = Image.open(response.raw).convert("RGB")
+        except:
+            st.error("تعذر تحميل الصورة من هذا الرابط. تأكد أنه رابط مباشر ينتهي بـ .jpg أو .png")
 
-# معالجة الصورة وتوليد الوصف
-if raw_image is not None:
-    st.image(raw_image, caption="الصورة المستخدمة", use_container_width=True)
+# 4. معالجة الصورة وإظهار النتيجة فوراً
+if img_input:
+    st.image(img_input, caption="الصورة التي تم إدخالها", use_container_width=True)
     
     with st.spinner("جاري تحليل الصورة وتوليد الوصف..."):
         try:
-            # معالجة الصورة بدون نص توجيهي (الوصف المطلق)
-            inputs = processor(raw_image, return_tensors="pt")
-            out = model.generate(**inputs)
-            caption = processor.decode(out[0], skip_special_tokens=True)
+            # توليد الوصف
+            result = captioner(img_input)
+            caption_text = result[0]['generated_text']
             
-            # عرض النتيجة
-            st.success("✨ تم توليد الوصف بنجاح!")
-            st.subheader("الوصف (Caption):")
-            st.info(caption)
-            
+            # عرض النتيجة للمستخدم
+            st.success("✨ تم تحليل الصورة بنجاح!")
+            st.subheader("الوصف باللغة الإنجليزية:")
+            st.code(caption_text, language="text")
         except Exception as e:
-            st.error(f"حدث خطأ أثناء توليد الوصف: {e}")
+            st.error(f"حدث خطأ أثناء معالجة الصورة: {e}")
