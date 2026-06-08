@@ -1,60 +1,114 @@
 import streamlit as st
-import requests
-from PIL import Image
-from transformers import pipeline
+import pandas as pd
+import datetime
 
-# 1. إعدادات واجهة الموقع
-st.set_page_config(page_title="محلل الصور الذكي", page_icon="🖼️")
-st.title("🖼️ تطبيق وصف الصور التلقائي (BLIP)")
-st.write("ارفع صورة من جهازك أو وضع رابطاً مباشراً لصورة ليقوم الذكاء الاصطناعي بوصفها.")
+# 1. إعدادات واجهة المنصة باللغة العربية
+st.set_page_config(page_title="صندوق جماعة معلين بني بكر بن وائل", page_icon="💰", layout="wide")
 
-# 2. تحميل النموذج باسم المهمة الجديد المعتمد في مكتبة transformers
-@st.cache_resource
-def get_caption_pipeline():
-    # تم تحديث اسم المهمة إلى image-text-to-text لتجنب الخطأ السابق تماماً
-    return pipeline("image-text-to-text", model="Salesforce/blip-image-captioning-base")
+# تطبيق التنسيق من اليمين إلى اليسار (RTL) للغة العربية
+st.markdown("""
+    <style>
+    .reportview-container .main .block-container{ max-width: 1200px; }
+    div[data-testid="stSidebarUserContent"] { direction: rtl; }
+    div[data-testid="stAppViewBlockContainer"] { direction: rtl; text-align: right; }
+    h1, h2, h3, p, span, label { text-align: right !important; direction: rtl !important; }
+    </style>
+""", unsafe_allow_html=True)
 
-try:
-    captioner = get_caption_pipeline()
-except Exception as e:
-    st.error(f"فشل في تحميل نموذج الذكاء الاصطناعي: {e}")
+st.title("💰 نظام كشوفات وصندوق جماعة معلين بني بكر بن وائل")
+st.write("منصة رقمية متكاملة لإدارة الاشتراكات، المصاريف، وحسابات الصندوق الجماعي.")
 
-# 3. خيارات إدخال الصورة
-choice = st.radio("اختر طريقة إدخال الصورة:", ["رفع ملف صورة", "إدخال رابط صورة"])
-img_input = None
+# 2. إدارة البيانات وحفظها مؤقتاً (بإمكانك ربطها بقاعدة بيانات لاحقاً)
+if 'members' not in st.session_state:
+    st.session_state.members = [
+        {"المعرف": 101, "الاسم": "أحمد البكري", "الحالة": "نشط", "إجمالي الاشتراكات": 500},
+        {"المعرف": 102, "الاسم": "محمد البكري", "الحالة": "نشط", "إجمالي الاشتراكات": 500},
+        {"المعرف": 103, "الاسم": "خالد البكري", "الحالة": "متأخر", "إجمالي الاشتراكات": 200}
+    ]
 
-if choice == "رفع ملف صورة":
-    uploaded_file = st.file_uploader("اختر صورة...", type=["jpg", "jpeg", "png"])
-    if uploaded_file:
-        try:
-            img_input = Image.open(uploaded_file).convert("RGB")
-        except:
-            st.error("خطأ في قراءة ملف الصورة.")
+if 'transactions' not in st.session_state:
+    st.session_state.transactions = [
+        {"التاريخ": "2026-01-01", "النوع": "إيداع (اشتراك)", "المبلغ": 500, "التفاصيل": "اشتراك أحمد البكري"},
+        {"التاريخ": "2026-01-02", "النوع": "إيداع (اشتراك)", "المبلغ": 500, "التفاصيل": "اشتراك محمد البكري"},
+        {"التاريخ": "2026-01-05", "النوع": "إيداع (اشتراك)", "المبلغ": 200, "التفاصيل": "اشتراك جزئي خالد البكري"},
+        {"التاريخ": "2026-01-10", "النوع": "مصروف (مساعدة)", "المبلغ": 400, "التفاصيل": "مساعدة عائلية طارئة"}
+    ]
 
-else:
-    url_input = st.text_input("أدخل رابط الصورة المباشر:")
-    if url_input:
-        try:
-            # إضافة حماية للروابط لمنع حظر خوادم Streamlit
-            headers = {"User-Agent": "Mozilla/5.0"}
-            response = requests.get(url_input, stream=True, headers=headers)
-            img_input = Image.open(response.raw).convert("RGB")
-        except:
-            st.error("تعذر تحميل الصورة من هذا الرابط. تأكد أنه رابط مباشر ينتهي بـ .jpg أو .png")
+# 3. الحسابات المالية الإجمالية (الملخص التنفيذي)
+df_trans = pd.DataFrame(st.session_state.transactions)
+total_income = df_trans[df_trans['النوع'].str.contains("إيداع")]['المبلغ'].sum()
+total_expense = df_trans[df_trans['النوع'].str.contains("مصروف")]['المبلغ'].sum()
+current_balance = total_income - total_expense
 
-# 4. معالجة الصورة وإظهار النتيجة فوراً
-if img_input:
-    st.image(img_input, caption="الصورة التي تم إدخالها", use_container_width=True)
-    
-    with st.spinner("جاري تحليل الصورة وتوليد الوصف..."):
-        try:
-            # توليد الوصف
-            result = captioner(img_input)
-            caption_text = result[0]['generated_text']
+# عرض الميزانية الحالية في الأعلى
+col1, col2, col3 = st.columns(3)
+with col1:
+    st.metric(label="رصيد الصندوق الحالي", value=f"{current_balance:,} ريال")
+with col2:
+    st.metric(label="إجمالي الإيداعات والاشتراكات", value=f"{total_income:,} ريال", delta_color="normal")
+with col3:
+    st.metric(label="إجمالي المصاريف والمساعدات", value=f"{total_expense:,} ريال")
+
+st.markdown("---")
+
+# 4. القائمة الجانبية للتنقل بين الأقسام
+menu = ["📊 لوحة التحكم والكشوفات", "👤 إدارة أسماء الجماعة", "💸 تسجيل حركة مالية (قبض/صرف)"]
+choice = st.sidebar.selectbox("قائمة الإدارة", menu)
+
+# --- القسم الأول: لوحة التحكم والكشوفات ---
+if choice == "📊 لوحة التحكم والكشوفات":
+    st.subheader("📋 كشف الحركات المالية للصندوق")
+    if not df_trans.empty:
+        st.dataframe(df_trans, use_container_width=True)
+    else:
+        st.info("لا توجد حركات مالية مسجلة بعد.")
+        
+    st.subheader("👥 كشف حالة اشتراكات الأعضاء")
+    df_members = pd.DataFrame(st.session_state.members)
+    st.dataframe(df_members, use_container_width=True)
+
+# --- القسم الثاني: إدارة أسماء الجماعة ---
+elif choice == "👤 إدارة أسماء الجماعة":
+    st.subheader("➕ إضافة فرد جديد للجماعة")
+    with st.form("add_member_form"):
+        new_id = st.number_input("رقم الهوية أو المعرف الداخلي", min_value=100, max_value=9999, step=1)
+        new_name = st.text_input("اسم الفرد كاملاً")
+        status = st.selectbox("حالة السداد التلقائية", ["نشط", "متأخر"])
+        submitted = st.form_submit_button("حفظ الاسم في الكشف")
+        
+        if submitted and new_name:
+            st.session_state.members.append({"المعرف": new_id, "الاسم": new_name, "الحالة": status, "إجمالي الاشتراكات": 0})
+            st.success(f"تم إضافة {new_name} بنجاح إلى كشوفات الجماعة.")
+            st.rerun()
+
+# --- القسم الثالث: تسجيل حركة مالية ---
+elif choice == "💸 تسجيل حركة مالية (قبض/صرف)":
+    st.subheader("📝 تسجيل حركة مالية جديدة في الصندوق")
+    with st.form("transaction_form"):
+        t_type = st.selectbox("نوع المعاملة", ["إيداع (اشتراك)", "إيداع (تبرع)", "مصروف (مساعدة)", "مصروف (تشغيلي)"])
+        t_amount = st.number_input("المبلغ (بالريال السعودي)", min_value=1, max_value=100000, step=50)
+        t_details = st.text_input("تفاصيل الحركة (مثال: اشتراك فلان لشهر رجب / مساعدة زواج)")
+        t_date = st.date_input("تاريخ المعاملة", datetime.date.today())
+        
+        submitted_trans = st.form_submit_button("اعتماد العملية المالية")
+        
+        if submitted_trans and t_details:
+            # إضافة المعاملة للحسابات
+            st.session_state.transactions.append({
+                "التاريخ": str(t_date),
+                "النوع": t_type,
+                "المبلغ": t_amount,
+                "التفاصيل": t_details
+            })
             
-            # عرض النتيجة للمستخدم
-            st.success("✨ تم تحليل الصورة بنجاح!")
-            st.subheader("الوصف باللغة الإنجليزية:")
-            st.code(caption_text, language="text")
-        except Exception as e:
-            st.error(f"حدث خطأ أثناء معالجة الصورة: {e}")
+            # إذا كان اشتراك لأحد الأعضاء، نقوم بتحديث إجمالي اشتراكاته تلقائياً
+            if "اشتراك" in t_type:
+                df_m = pd.DataFrame(st.session_state.members)
+                # فحص مبسط إذا كان الاسم مذكور في التفاصيل لتحديث رصيده
+                for member in st.session_state.members:
+                    if member['الاسم'] in t_details:
+                        member['إجمالي الاشتراكات'] += t_amount
+                        member['الحالة'] = "نشط"
+            
+            st.success("تم تسجيل العملية المالية بنجاح وتحديث رصيد الصندوق الكلي.")
+            st.rerun()
